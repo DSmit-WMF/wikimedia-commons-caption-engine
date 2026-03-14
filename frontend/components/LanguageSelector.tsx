@@ -41,7 +41,7 @@ export function LanguageSelector({
   preferredLang,
 }: LanguageSelectorProps) {
   const [open, setOpen] = useState(false);
-  const { favourites, toggle: toggleFavourite, has: isFavourite } = useFavouriteLanguages();
+  const { toggle: toggleFavourite, has: isFavourite } = useFavouriteLanguages();
 
   const { data: suggested = ["en", "es", "fr"] } = useQuery({
     queryKey: ["suggested-languages", preferredLang],
@@ -59,6 +59,7 @@ export function LanguageSelector({
   }
 
   function removeLanguage(code: string) {
+    if (isDefaultLanguage(code)) return;
     onLanguagesChange(selectedLanguages.filter((l) => l !== code));
   }
 
@@ -70,39 +71,46 @@ export function LanguageSelector({
 
   const languageName = (code: string) => codeToName.get(code) ?? code;
 
-  /** Chips: selected languages + favourites (favourites always appear in captions, so show as "added" here too) */
-  const displayChipLanguages = [
-    ...selectedLanguages,
-    ...favourites.filter((f) => !selectedLanguages.includes(f)),
-  ];
-
   const allLanguageOptions = allLanguages.length > 0 ? allLanguages : FALLBACK_LANGUAGES;
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {displayChipLanguages.map((code) => {
-          const isSelected = selectedLanguages.includes(code);
-          const isFavOnly = isFavourite(code) && !isSelected;
+        {selectedLanguages.map((code) => {
+          const isDefault = isDefaultLanguage(code);
           return (
             <span
               key={code}
               className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-sm"
             >
-              {isFavOnly && (
-                <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-500" aria-hidden />
-              )}
               {languageName(code)} ({code})
-              {isSelected ? (
+              {!isDefault && (
                 <button
                   type="button"
                   aria-label={`Remove ${code}`}
-                  className="ml-1 rounded hover:bg-muted-foreground/20"
+                  className="rounded hover:bg-muted-foreground/20"
                   onClick={() => removeLanguage(code)}
                 >
                   <X className="h-3 w-3" />
                 </button>
-              ) : null}
+              )}
+              {!isDefault && (
+                <button
+                  type="button"
+                  aria-label={isFavourite(code) ? "Remove from favourites" : "Add to favourites"}
+                  className="rounded p-0.5 hover:bg-muted-foreground/20"
+                  onClick={() => toggleFavourite(code)}
+                >
+                  <Star
+                    className={`h-3.5 w-3.5 shrink-0 ${
+                      isFavourite(code)
+                        ? "fill-amber-400 text-amber-500"
+                        : "text-muted-foreground"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+              )}
             </span>
           );
         })}
@@ -118,8 +126,8 @@ export function LanguageSelector({
           <DialogHeader>
             <DialogTitle>Select languages</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Your selection is at the top—star any row to favourite it, click the row to remove
-              from selection. Below: click to add, star to favourite.
+              Click a language to add it to the caption list. Your selection is at the top—click a
+              row to remove it (default languages cannot be removed).
             </p>
           </DialogHeader>
           <Command className="rounded-lg border">
@@ -135,151 +143,62 @@ export function LanguageSelector({
                         key={code}
                         value={`selected ${code} ${languageName(code)}`}
                         onSelect={() => removeLanguage(code)}
+                        disabled={isDefault}
                       >
                         <span className="flex-1">
                           {languageName(code)} ({code})
+                          {isDefault && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (default, cannot remove)
+                            </span>
+                          )}
                         </span>
                         {!isDefault && (
-                          <button
-                            type="button"
-                            aria-label={
-                              isFavourite(code) ? "Remove from favourites" : "Add to favourites"
-                            }
-                            className="rounded p-0.5 hover:bg-muted"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleFavourite(code);
-                            }}
-                          >
-                            <Star
-                              className={`h-4 w-4 ${
-                                isFavourite(code)
-                                  ? "fill-amber-400 text-amber-500"
-                                  : "text-muted-foreground"
-                              }`}
-                              aria-hidden
-                            />
-                          </button>
+                          <span className="text-muted-foreground text-xs">click to remove</span>
                         )}
-                        <span className="text-muted-foreground text-xs ml-1">
-                          click row to remove
-                        </span>
                       </CommandItem>
                     );
                   })}
-                </CommandGroup>
-              )}
-              {favourites.length > 0 && (
-                <CommandGroup heading="Favourites">
-                  {favourites.map((code) => (
-                    <CommandItem
-                      key={code}
-                      value={`fav ${code} ${languageName(code)}`}
-                      onSelect={() => addLanguage(code)}
-                    >
-                      <span className="flex-1">
-                        {languageName(code)} ({code})
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Remove from favourites"
-                        className="rounded p-0.5 hover:bg-muted"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleFavourite(code);
-                        }}
-                      >
-                        <Star className="h-4 w-4 fill-amber-400 text-amber-500" aria-hidden />
-                      </button>
-                      {selectedLanguages.includes(code) && (
-                        <span className="ml-2 text-muted-foreground text-xs">added</span>
-                      )}
-                    </CommandItem>
-                  ))}
                 </CommandGroup>
               )}
               <CommandGroup heading="Suggested (from your preference)">
                 {suggested
                   .slice(0, 6)
                   .filter((code) => !selectedLanguages.includes(code))
-                  .map((code) => {
-                    const isDefault = isDefaultLanguage(code);
-                    return (
-                      <CommandItem
-                        key={code}
-                        value={`${code} ${languageName(code)}`}
-                        onSelect={() => addLanguage(code)}
-                      >
-                        <span className="flex-1">
-                          {languageName(code)} ({code})
-                        </span>
-                        {!isDefault && (
-                          <button
-                            type="button"
-                            aria-label={
-                              isFavourite(code) ? "Remove from favourites" : "Add to favourites"
-                            }
-                            className="rounded p-0.5 hover:bg-muted"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleFavourite(code);
-                            }}
-                          >
-                            <Star
-                              className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
-                              aria-hidden
-                            />
-                          </button>
-                        )}
-                        {selectedLanguages.includes(code) && (
-                          <span className="ml-2 text-muted-foreground text-xs">added</span>
-                        )}
-                      </CommandItem>
-                    );
-                  })}
+                  .map((code) => (
+                    <CommandItem
+                      key={code}
+                      value={`${code} ${languageName(code)}`}
+                      onSelect={() => addLanguage(code)}
+                    >
+                      <span className="flex-1">
+                        {languageName(code)} ({code})
+                      </span>
+                      {selectedLanguages.includes(code) && (
+                        <span className="ml-2 text-muted-foreground text-xs">added</span>
+                      )}
+                    </CommandItem>
+                  ))}
               </CommandGroup>
               <CommandGroup heading="All">
                 {allLanguageOptions
-                  .filter((l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code))
-                  .map(({ code, name }) => {
-                    const isDefault = isDefaultLanguage(code);
-                    return (
-                      <CommandItem
-                        key={code}
-                        value={`${code} ${name}`}
-                        onSelect={() => addLanguage(code)}
-                      >
-                        <span className="flex-1">
-                          {name} ({code})
-                        </span>
-                        {!isDefault && (
-                          <button
-                            type="button"
-                            aria-label={
-                              isFavourite(code) ? "Remove from favourites" : "Add to favourites"
-                            }
-                            className="rounded p-0.5 hover:bg-muted"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleFavourite(code);
-                            }}
-                          >
-                            <Star
-                              className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
-                              aria-hidden
-                            />
-                          </button>
-                        )}
-                        {selectedLanguages.includes(code) && (
-                          <span className="ml-2 text-muted-foreground text-xs">added</span>
-                        )}
-                      </CommandItem>
-                    );
-                  })}
+                  .filter(
+                    (l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code)
+                  )
+                  .map(({ code, name }) => (
+                    <CommandItem
+                      key={code}
+                      value={`${code} ${name}`}
+                      onSelect={() => addLanguage(code)}
+                    >
+                      <span className="flex-1">
+                        {name} ({code})
+                      </span>
+                      {selectedLanguages.includes(code) && (
+                        <span className="ml-2 text-muted-foreground text-xs">added</span>
+                      )}
+                    </CommandItem>
+                  ))}
               </CommandGroup>
             </CommandList>
           </Command>

@@ -10,12 +10,16 @@ import {
   type BatchFileInfoItem,
   type CommonsFileInfo,
 } from "@/lib/api";
-import { DEFAULT_LANGUAGE_CODES } from "@/lib/favourite-languages";
+import {
+  DEFAULT_LANGUAGE_CODES,
+  getFavouriteLanguages,
+} from "@/lib/favourite-languages";
 
 const DEFAULT_LANGUAGES = [...DEFAULT_LANGUAGE_CODES];
 
 type ApplyFileInfoSetters = {
   setCaptions: (c: CaptionItem[]) => void;
+  setLanguages: (l: string[] | ((prev: string[]) => string[])) => void;
   setFileIdentifier: (id: string | null) => void;
   setImageUrl: (u: string | null) => void;
   setDescriptionContext: (d: string) => void;
@@ -29,6 +33,7 @@ type ApplyFileInfoSetters = {
 function clearFileState(setters: ApplyFileInfoSetters, loadError: string | null = null): void {
   const {
     setCaptions,
+    setLanguages,
     setFileIdentifier,
     setImageUrl,
     setDescriptionContext,
@@ -38,6 +43,7 @@ function clearFileState(setters: ApplyFileInfoSetters, loadError: string | null 
   } = setters;
   setLoadError(loadError);
   setCaptions([]);
+  setLanguages(DEFAULT_LANGUAGES);
   setFileIdentifier(null);
   setImageUrl(null);
   setDescriptionContext("");
@@ -70,6 +76,16 @@ function applyFileInfo(
   const initial: CaptionItem[] = labelEntries.map(([lang, text]) => ({ lang, text }));
   setters.setCaptions(initial);
   setters.setLanguagesFromCommons(new Set(initial.map((c) => c.lang)));
+  // Selection = defaults + favourites (for next-time auto-add) + languages from file.
+  const fileLangCodes = initial.map((c) => c.lang);
+  const initialLanguages = [
+    ...new Set([
+      ...DEFAULT_LANGUAGE_CODES,
+      ...getFavouriteLanguages(),
+      ...fileLangCodes,
+    ]),
+  ];
+  setters.setLanguages(initialLanguages);
   setters.setFileIdentifier(info.title ?? url);
   setters.setImageUrl(info.image_url ?? null);
   const descs = info.descriptions ?? {};
@@ -128,6 +144,7 @@ export function useCommonsFile() {
     if (fileQuery.isSuccess) {
       applyFileInfo(fileQuery.data, loadRequestUrl, {
         setCaptions,
+        setLanguages,
         setFileIdentifier,
         setImageUrl,
         setDescriptionContext,
@@ -147,6 +164,7 @@ export function useCommonsFile() {
       clearFileState(
         {
           setCaptions,
+          setLanguages,
           setFileIdentifier,
           setImageUrl,
           setDescriptionContext,
@@ -287,6 +305,19 @@ export function useCommonsFile() {
   const hasCaptions = captions.length > 0 && !noCaptionsMessage;
   const showCaptionUI = hasCaptions && fileIdentifier;
 
+  /** When languages are removed from selection, also remove their caption entries. Default languages are always kept. */
+  const setLanguagesAndSyncCaptions = useCallback(
+    (newLangs: string[] | ((prev: string[]) => string[])) => {
+      setLanguages((prev) => {
+        const next = typeof newLangs === "function" ? newLangs(prev) : newLangs;
+        const withDefaults = [...new Set([...DEFAULT_LANGUAGE_CODES, ...next])];
+        setCaptions((cap) => cap.filter((c) => withDefaults.includes(c.lang)));
+        return withDefaults;
+      });
+    },
+    []
+  );
+
   return {
     commonsUrl,
     setCommonsUrl,
@@ -306,7 +337,7 @@ export function useCommonsFile() {
     captions,
     setCaptions,
     languages,
-    setLanguages,
+    setLanguages: setLanguagesAndSyncCaptions,
     languagesFromCommons,
     fileIdentifier,
     imageUrl,

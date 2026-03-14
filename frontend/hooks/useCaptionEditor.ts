@@ -9,7 +9,6 @@ import {
   type CaptionItem,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFavouriteLanguages } from "@/lib/favourite-languages";
 import { useLanguageNames } from "./useLanguageNames";
 
 /**
@@ -52,7 +51,6 @@ export function useCaptionEditor({
   descriptionContext,
 }: UseCaptionEditorProps) {
   const { accessToken } = useAuth();
-  const { favourites } = useFavouriteLanguages();
   const { getLabelText, getPlaceholderText } = useLanguageNames();
 
   const [generatingLang, setGeneratingLang] = useState<string | null>(null);
@@ -109,7 +107,7 @@ export function useCaptionEditor({
     };
   }, [fileIdentifier]);
 
-  const displayLangs = [...new Set([...languages, ...favourites, ...captions.map((c) => c.lang)])];
+  const displayLangs = [...new Set([...languages, ...captions.map((c) => c.lang)])];
 
   const emptyNonCommonsLangs = displayLangs.filter(
     (lang) =>
