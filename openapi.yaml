@@ -1,0 +1,406 @@
+openapi: 3.0.3
+info:
+  title: Commons Caption Suggestion Tool API
+  description: |
+    Backend API for the Commons Caption Suggestion Tool. Used to load Commons file metadata,
+    translate captions via OpenAI, validate caption text, and save labels to Commons.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3002
+    description: Local development
+
+paths:
+  /api/health:
+    get:
+      summary: Liveness check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/languages:
+    get:
+      summary: Suggested language list
+      description: Returns a prioritized list of language codes (e.g. for user preference + fallbacks).
+      operationId: getSuggestedLanguages
+      parameters:
+        - name: preferred_lang
+          in: query
+          schema:
+            type: string
+            default: en
+          description: Preferred language code
+      responses:
+        "200":
+          description: List of language codes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [languages]
+                properties:
+                  languages:
+                    type: array
+                    items:
+                      type: string
+                    example: ["en", "es", "fr", "ar", "zh"]
+
+  /api/languages/all:
+    get:
+      summary: All MediaWiki languages
+      description: Returns all languages from the Commons languageinfo API (native and English names).
+      operationId: getAllLanguages
+      responses:
+        "200":
+          description: List of languages with native and English names
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [languages]
+                properties:
+                  languages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MediaWikiLanguage"
+        "502":
+          description: Failed to fetch from MediaWiki
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/commons/file-info:
+    get:
+      summary: Get Commons file info and existing labels
+      description: Resolve a Commons file URL or title to metadata, MediaInfo ID, existing labels, descriptions, and thumbnail URL.
+      operationId: getCommonsFileInfo
+      parameters:
+        - name: url
+          in: query
+          schema:
+            type: string
+            format: uri
+          description: Commons file page URL (e.g. https://commons.wikimedia.org/wiki/File:Example.jpg)
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: File title (e.g. File:Example.jpg)
+      responses:
+        "200":
+          description: File metadata and labels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileInfo"
+        "400":
+          description: Missing url or title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/commons/random-file:
+    get:
+      summary: Get a random Commons file with labels
+      description: Returns a random Commons file that has structured-data labels (for "Random image" feature).
+      operationId: getRandomCommonsFile
+      responses:
+        "200":
+          description: Random file URL and title
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, title]
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  title:
+                    type: string
+        "404":
+          description: No random file with labels found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/translate-captions:
+    post:
+      summary: Translate captions into target languages
+      description: Uses OpenAI to translate a source caption into the requested languages. Optional description_context improves accuracy.
+      operationId: translateCaptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranslateCaptionsRequest"
+      responses:
+        "200":
+          description: Translated captions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [captions]
+                properties:
+                  captions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CaptionItem"
+        "400":
+          description: Invalid body or missing caption
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Translation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: OpenAI API key not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/validate-caption:
+    post:
+      summary: Validate caption text
+      description: Checks caption against Commons guidelines (length, factual, neutral, etc.).
+      operationId: validateCaption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateCaptionRequest"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationResult"
+        "400":
+          description: Invalid body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/commons/save-captions:
+    post:
+      summary: Save captions to Commons
+      description: |
+        Writes caption labels to the Commons MediaInfo entity via wbsetlabel.
+        Authentication: use either server env COMMONS_OAUTH_TOKEN (owner-only) or send the user's
+        OAuth token via Authorization Bearer header or oauth_token in body (per-user).
+      operationId: saveCaptions
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveCaptionsRequest"
+      responses:
+        "200":
+          description: Save succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  media_info_id:
+                    type: string
+                    example: M12345
+        "400":
+          description: Invalid body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: File or MediaInfo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Save to Commons failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No OAuth token configured or provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: OAuth2
+      description: Optional. Per-user OAuth access token. If omitted, server uses COMMONS_OAUTH_TOKEN.
+
+  schemas:
+    CaptionItem:
+      type: object
+      required: [lang, text]
+      properties:
+        lang:
+          type: string
+          description: Language code (e.g. en, zh)
+        text:
+          type: string
+          description: Caption text
+
+    MediaWikiLanguage:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        bcp47:
+          type: string
+        name:
+          type: string
+          description: Native name (autonym)
+        nameEn:
+          type: string
+          description: English name (from languageinfo uselang=en)
+
+    FileInfo:
+      type: object
+      required: [title, media_info_id, labels, descriptions]
+      properties:
+        title:
+          type: string
+          description: File page title
+        media_info_id:
+          type: string
+          description: MediaInfo entity ID (e.g. M12345)
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Existing caption labels by language code
+        descriptions:
+          type: object
+          additionalProperties:
+            type: string
+          description: Longer descriptions (e.g. Summary) by language code
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Thumbnail URL for display
+
+    TranslateCaptionsRequest:
+      type: object
+      required: [captions, target_langs]
+      properties:
+        captions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaptionItem"
+          minItems: 1
+          description: Source captions (first is used as source)
+        target_langs:
+          type: array
+          items:
+            type: string
+          description: Target language codes
+        description_context:
+          type: string
+          description: Optional longer description to improve translation accuracy
+
+    ValidateCaptionRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        lang:
+          type: string
+          description: Optional language code
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+
+    SaveCaptionsRequest:
+      type: object
+      required: [file_identifier, captions]
+      properties:
+        file_identifier:
+          type: string
+          minLength: 1
+          description: Commons file URL or title (e.g. File:Example.jpg)
+        captions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaptionItem"
+        oauth_token:
+          type: string
+          minLength: 1
+          description: Optional per-user OAuth access token. Alternative to Authorization header.
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          description: Validation details (e.g. from Zod)

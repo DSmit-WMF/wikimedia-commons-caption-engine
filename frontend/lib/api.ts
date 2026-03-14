@@ -71,15 +71,32 @@ export async function getAllMediaWikiLanguages(): Promise<MediaWikiLanguage[]> {
   return list;
 }
 
-/** Saves captions to Commons. The server uses COMMONS_OAUTH_TOKEN from env; no token is sent from the client. */
+export interface SaveCaptionsOptions {
+  /** Per-user OAuth access token. When provided, sent to backend; otherwise backend uses COMMONS_OAUTH_TOKEN (owner-only). */
+  accessToken?: string | null;
+}
+
+/** Saves captions to Commons. Pass accessToken when using per-user OAuth; otherwise the server uses COMMONS_OAUTH_TOKEN from env. */
 export async function saveCaptionsToCommons(
   fileIdentifier: string,
-  captions: CaptionItem[]
+  captions: CaptionItem[],
+  options?: SaveCaptionsOptions
 ): Promise<{ success: boolean; media_info_id?: string }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (options?.accessToken) {
+    headers.Authorization = `Bearer ${options.accessToken}`;
+  }
+  const body: { file_identifier: string; captions: CaptionItem[]; oauth_token?: string } = {
+    file_identifier: fileIdentifier,
+    captions,
+  };
+  if (options?.accessToken) {
+    body.oauth_token = options.accessToken;
+  }
   const res = await fetch(`${API_URL}/api/commons/save-captions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ file_identifier: fileIdentifier, captions }),
+    headers,
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Save failed");

@@ -11,6 +11,8 @@ import {
   getAllMediaWikiLanguages,
   type CaptionItem,
 } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFavouriteLanguages } from "@/lib/favourite-languages";
 import { Loader2, Copy, Download, Send, Sparkles, Check } from "lucide-react";
 
 interface CaptionEditorProps {
@@ -36,6 +38,8 @@ export function CaptionEditor({
   fileIdentifier,
   descriptionContext,
 }: CaptionEditorProps) {
+  const { accessToken } = useAuth();
+  const { favourites } = useFavouriteLanguages();
   const [generatingLang, setGeneratingLang] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [sendingLang, setSendingLang] = useState<string | null>(null);
@@ -44,8 +48,12 @@ export function CaptionEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [sentLangs, setSentLangs] = useState<Set<string>>(new Set());
   const [dirtyLangs, setDirtyLangs] = useState<Set<string>>(new Set());
-  const [languageNames, setLanguageNames] = useState<Record<string, string>>({});
-  const [languageNamesEn, setLanguageNamesEn] = useState<Record<string, string>>({});
+  const [languageNames, setLanguageNames] = useState<Record<string, string>>(
+    {},
+  );
+  const [languageNamesEn, setLanguageNamesEn] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     getAllMediaWikiLanguages().then((list) => {
@@ -61,8 +69,7 @@ export function CaptionEditor({
   }, []);
 
   /** Language name from MW API (native name), fallback to code. */
-  const displayName = (code: string) =>
-    languageNames[code] || code;
+  const displayName = (code: string) => languageNames[code] || code;
 
   /** English name from MW API (languageinfo uselang=en). */
   const englishName = (code: string) => languageNamesEn[code];
@@ -75,11 +82,11 @@ export function CaptionEditor({
   };
 
   /** Placeholder: Caption in Name (English - code). */
-  const placeholderText = (code: string) =>
-    `Caption in ${labelText(code)}`;
+  const placeholderText = (code: string) => `Caption in ${labelText(code)}`;
 
+  /** Selected languages + favourites (always show) + any language that has caption data */
   const displayLangs = [
-    ...new Set([...languages, ...captions.map((c) => c.lang)]),
+    ...new Set([...languages, ...favourites, ...captions.map((c) => c.lang)]),
   ];
 
   /** Always show Generate so the user can overwrite or translate into this language. */
@@ -189,7 +196,9 @@ export function CaptionEditor({
         }));
         return;
       }
-      await saveCaptionsToCommons(fileIdentifier, [cap]);
+      await saveCaptionsToCommons(fileIdentifier, [cap], {
+        accessToken: accessToken ?? undefined,
+      });
       setFieldErrors((prev) => {
         const nextErr = { ...prev };
         delete nextErr[lang];
@@ -226,7 +235,9 @@ export function CaptionEditor({
         setFieldErrors(errors);
         return;
       }
-      await saveCaptionsToCommons(fileIdentifier, toSend);
+      await saveCaptionsToCommons(fileIdentifier, toSend, {
+        accessToken: accessToken ?? undefined,
+      });
       setFieldErrors({});
       setSentLangs((prev) => {
         const next = new Set(prev);
@@ -389,9 +400,8 @@ export function CaptionEditor({
             onClick={sendAll}
             disabled={
               sendingAll ||
-              captions.filter(
-                (c) => c.text?.trim() && dirtyLangs.has(c.lang),
-              ).length === 0
+              captions.filter((c) => c.text?.trim() && dirtyLangs.has(c.lang))
+                .length === 0
             }
           >
             {sendingAll ? (

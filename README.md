@@ -37,8 +37,8 @@ COMMONS_OAUTH_TOKEN=your-owner-only-oauth2-token
 2. Open the [OAuth 2.0 consumer registration](https://meta.wikimedia.org/wiki/Special:OAuthConsumerRegistration/propose/oauth2) page.
 3. Fill in a name and description for your app, set the grant type to **owner-only**, then submit.
 4. Under **Applicable grants**, request only **Edit existing pages**. (That is enough to set captions on existing Commons files. Do not request upload, delete, block, or other grants.)
-5. On the result page, copy the **access token** and paste it into `.env` as `COMMONS_OAUTH_TOKEN`.  
-   (Store it securely; the token is shown only once. If you lose it, create a new consumer.)
+5. On the result page, copy the **access token** and paste it into `.env` as `COMMONS_OAUTH_TOKEN`.
+  (Store it securely; the token is shown only once. If you lose it, create a new consumer.)
 
 Without this token you can still generate and edit captions; only the “Save to Commons” step will be disabled.
 
@@ -49,6 +49,10 @@ Without this token you can still generate and edit captions; only the “Save to
 ```bash
 # Development (live reload)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# If the backend fails with "Cannot find package", refresh the backend node_modules volume:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml run backend npm install
+# then run `up` again.
 
 # Or: production-style build
 docker compose up --build
@@ -69,6 +73,8 @@ cd frontend && npm install && npm run dev
 - **Frontend:** [http://localhost:3003](http://localhost:3003)
 - **Backend API:** [http://localhost:3002](http://localhost:3002) (e.g. [http://localhost:3002/api/health](http://localhost:3002/api/health))
 
+**OpenAPI spec (dev only):** When not in production, the backend serves the spec and Swagger UI at [http://localhost:3002/api-docs](http://localhost:3002/api-docs) and [http://localhost:3002/openapi.yaml](http://localhost:3002/openapi.yaml). These routes are not mounted in production.
+
 ### 5. Use it
 
 1. Paste a **Commons file URL** (e.g. `https://commons.wikimedia.org/wiki/File:Example.jpg`) and click **Load**, or use **Random image** to load a random Commons file that has captions.
@@ -87,6 +93,8 @@ cd frontend && npm install && npm run dev
 
 ## API
 
+Full request/response contract: **[openapi.yaml](openapi.yaml)** (OpenAPI 3.0).
+
 - `GET /api/health` — liveness
 - `GET /api/commons/file-info?url=` or `?title=` — load file info, existing labels, descriptions, and thumbnail URL
 - `GET /api/commons/random-file` — random Commons file that has structured-data labels (for “Random image”)
@@ -94,11 +102,16 @@ cd frontend && npm install && npm run dev
 - `POST /api/validate-caption` — text → valid + warnings
 - `GET /api/languages?preferred_lang=` — suggested language list
 - `GET /api/languages/all` — all MediaWiki languages with native and English names (languageinfo API)
-- `POST /api/commons/save-captions` — file_identifier + captions (server uses `COMMONS_OAUTH_TOKEN` from env)
+- `POST /api/commons/save-captions` — file_identifier + captions (optional `Authorization: Bearer` or `oauth_token`; else server uses `COMMONS_OAUTH_TOKEN`)
 
 ## Frontend (shadcn/ui)
 
 The UI uses [shadcn/ui](https://ui.shadcn.com/) with **Radix UI** primitives and the **Command** component (cmdk) for the language selector. Language labels and placeholders use native and English names from the API (e.g. “中文 (Chinese - zh)”). **Generate** is available for every language row (including those loaded from Commons). Validation runs when you click **Send** or **Send all**; errors are shown per field. Favourite languages are stored in `localStorage`.
+
+## Integration and multi-user OAuth
+
+- **Reuse and per-user OAuth:** [INTEGRATION.md](INTEGRATION.md)
+- **OAuth setup (owner-only and per-user):** [docs/OAUTH.md](docs/OAUTH.md)
 
 ## License
 

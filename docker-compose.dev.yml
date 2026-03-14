@@ -6,12 +6,15 @@ services:
       target: dev
     volumes:
       - ./backend:/app
+      - ./openapi.yaml:/app/openapi.yaml
       - backend_node_modules:/app/node_modules
     command: npm run dev
     ports:
       - "3002:3002"
     environment:
       - PORT=3002
+      - NODE_ENV=development
+      - OPENAPI_SPEC_PATH=/app/openapi.yaml
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - COMMONS_OAUTH_TOKEN=${COMMONS_OAUTH_TOKEN:-}
     env_file:

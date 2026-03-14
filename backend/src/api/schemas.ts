@@ -34,6 +34,8 @@ export const saveCaptionsSchema = z.object({
       text: z.string(),
     })
   ),
+  /** Optional per-user OAuth access token. When provided, used instead of COMMONS_OAUTH_TOKEN. */
+  oauth_token: z.string().min(1).optional(),
 });
 
 export type TranslateCaptionsBody = z.infer<typeof translateCaptionsSchema>;

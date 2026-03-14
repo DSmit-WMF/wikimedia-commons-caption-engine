@@ -82,8 +82,13 @@ router.post("/commons/save-captions", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid body", details: body.error.flatten() });
     return;
   }
-  if (!config.commonsOAuthToken) {
-    res.status(503).json({ error: "Commons OAuth token not configured" });
+  const bearer = req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const token = body.data.oauth_token ?? bearer ?? config.commonsOAuthToken;
+  if (!token) {
+    res.status(503).json({
+      error:
+        "No OAuth token: set COMMONS_OAUTH_TOKEN (owner-only) or send Authorization: Bearer <token> / oauth_token in body (per-user).",
+    });
     return;
   }
   try {
@@ -95,7 +100,7 @@ router.post("/commons/save-captions", async (req: Request, res: Response) => {
       res.status(404).json({ error: "File or MediaInfo not found" });
       return;
     }
-    await saveLabels(fileId, body.data.captions, config.commonsOAuthToken);
+    await saveLabels(fileId, body.data.captions, token);
     res.json({ success: true, media_info_id: fileId });
   } catch (err: unknown) {
     console.error("save-captions error", err);

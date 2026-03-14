@@ -31,7 +31,7 @@ async function getCsrfToken(oauthToken: string): Promise<string> {
       Authorization: `Bearer ${oauthToken}`,
     },
   });
-  console.log("commons api response", oauthToken, res.data);
+  console.log("Commons API (tokens):", res.data.query.tokens);
   const err = res.data?.error;
   if (err) {
     throw new Error(`Commons API (tokens): ${err.code} - ${err.info}`);
@@ -59,7 +59,7 @@ export async function saveLabels(
 ): Promise<void> {
   const csrfToken = await getCsrfToken(oauthToken);
 
-  console.log("cSaving labels to MediaInfo", mediaInfoId, captions, csrfToken);
+  console.log("Saving labels to MediaInfo:", mediaInfoId, captions);
   for (const { lang, text } of captions) {
     const body = [
       "action=wbsetlabel",

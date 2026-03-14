@@ -192,9 +192,9 @@ export default function Home() {
   );
 
   return (
-    <main className="container mx-auto max-w-4xl p-6 space-y-6">
+    <main className="container mx-auto max-w-4xl p-4 sm:p-6 space-y-4 sm:space-y-6">
       <header className="text-center space-y-2">
-        <h1 className="text-2xl font-bold">Commons Caption Suggestion Tool</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Commons Caption Suggestion Tool</h1>
         <p className="text-muted-foreground text-sm">
           Paste a Commons file URL to load existing captions, translate them
           into more languages, and save back to Commons.
@@ -202,14 +202,14 @@ export default function Home() {
       </header>
 
       {imageUrl ? (
-        <div className="flex gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
           {commonsFileCard}
-          <Card className="w-64 shrink-0 overflow-hidden">
-            <div className="w-full max-h-72 bg-muted flex items-center justify-center">
+          <Card className="w-full sm:w-64 sm:shrink-0 overflow-hidden">
+            <div className="w-full max-h-56 sm:max-h-72 bg-muted flex items-center justify-center">
               <img
                 src={imageUrl}
                 alt=""
-                className="object-contain max-h-72 w-full p-2"
+                className="object-contain max-h-56 sm:max-h-72 w-full p-2"
               />
             </div>
             <CardContent className="p-3 space-y-2">
@@ -223,7 +223,7 @@ export default function Home() {
                 href={commonsUrl || undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground underline"
+                className="text-xs text-muted-foreground hover:text-foreground underline break-all"
               >
                 Open on Commons
               </a>
