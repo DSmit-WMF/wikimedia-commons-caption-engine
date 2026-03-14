@@ -8,13 +8,15 @@ This document describes how well the app is abstracted for reuse (e.g. in Upload
 
 ### What is already modular
 
-- **Caption engine** (`backend/src/caption_engine/`): `translateCaptions()` and `validateCaption()` are pure logic. They take inputs (OpenAI client, text, languages, optional context) and return results. They do not depend on Express or Commons. Another Node.js app can `import` and use them directly.
+- **Caption engine** (`backend/src/caption_engine/`): `translateCaptions()` and `validateCaption()` are pure logic. They take inputs (OpenAI client, text, languages, optional context) and return results. They do **not** depend on Express or Commons. Another Node.js app (or a future MediaWiki backend) can `import` and use them directly.
 
-- **Commons adapter** (`backend/src/commons_adapter/`): `getFileInfo(identifier)`, `resolveFileToMediaInfoId(identifier)`, and `saveLabels(mediaInfoId, captions, oauthToken)` are the main entry points. They depend only on axios, config (User-Agent), and the Commons API. The **token is passed as an argument** to `saveLabels`, so the adapter does not assume a single global token.
+- **Commons adapter** (`backend/src/commons_adapter/`): `getFileInfo(identifier)`, `resolveFileToMediaInfoId(identifier)`, and `saveLabels(mediaInfoId, captions, oauthToken)` are the main entry points. They depend only on axios, config (User-Agent), and the Commons API. The **token is passed as an argument** to `saveLabels`, so the adapter does not assume a single global token. This is the layer you would reuse or reimplement when plugging into MediaWiki/Commons (e.g. PHP calling the same Commons APIs).
 
-- **API layer** (`backend/src/api/`): Express routes call the caption engine and Commons adapter. The `POST /api/commons/save-captions` handler accepts a token from the request (header or body) and falls back to `COMMONS_OAUTH_TOKEN` (see §2).
+- **HTTP API layer** (`backend/src/routes/`, `controllers/`, `services/`): Express routes → controllers → services → caption_engine / commons_adapter. The API is a thin wrapper; `POST /api/commons/save-captions` accepts a token from the request (header or body) and falls back to `COMMONS_OAUTH_TOKEN` (see §2). For integration, you can keep using this app as a microservice, or call the **caption_engine** and **commons_adapter** directly and skip the HTTP layer.
 
-### Integrating into UploadWizard or other Commons flows
+### Plugging into MediaWiki/Commons
+
+The backend is designed so you can later integrate with MediaWiki/Commons in three ways (unchanged by the modular refactor):
 
 **Option A — Use this backend as a microservice**
 
@@ -27,7 +29,7 @@ This document describes how well the app is abstracted for reuse (e.g. in Upload
 
 **Option B — Reuse the Node modules in another Node app**
 
-- Install or copy the `caption_engine` and `commons_adapter` directories (and their dependencies: `openai`, `axios`, `zod`). Your app provides the OpenAI key and, for saving, the OAuth token per request. You can keep or drop the Express routes and implement your own (e.g. GraphQL or another framework).
+- Import or copy the `caption_engine` and `commons_adapter` modules (and their dependencies: `openai`, `axios`, `zod`). Your app provides the OpenAI key and, for saving, the OAuth token per request. You can use the existing `services/` layer or call the caption_engine and commons_adapter directly and skip Express entirely (e.g. for a MediaWiki Node-based gadget or server-side script).
 
 **Option C — Reimplement in another stack (e.g. PHP for UploadWizard)**
 

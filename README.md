@@ -96,7 +96,7 @@ cd frontend && npm install && npm run dev
 
 ## Stack
 
-- **Backend:** Node.js, Express, TypeScript, OpenAI (text for translation), Zod
+- **Backend:** Node.js, Express, TypeScript, OpenAI (text for translation), Zod. Layered structure: **routes** (per domain) → **controllers** → **services** → **caption_engine** / **commons_adapter**; **app** factory and global error middleware.
 - **Frontend:** Next.js (App Router), [shadcn/ui](https://ui.shadcn.com/) (Radix UI + cmdk Command)
 - **Run:** Docker Compose (optional: dev override for live reload)
 
