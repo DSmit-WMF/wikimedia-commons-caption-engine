@@ -10,6 +10,8 @@ export interface CaptionEditorToolbarProps {
   emptyNonCommonsLangs: string[];
   captions: CaptionItem[];
   generatingAll: boolean;
+  /** When generate-all is running: { completed, total } for "2/5" counter. */
+  generateAllProgress: { completed: number; total: number } | null;
   onGenerateAll: () => void;
   onCopyAll: () => void;
   onExportJson: () => void;
@@ -20,6 +22,7 @@ export function CaptionEditorToolbar({
   emptyNonCommonsLangs,
   captions,
   generatingAll,
+  generateAllProgress,
   onGenerateAll,
   onCopyAll,
   onExportJson,
@@ -42,6 +45,11 @@ export function CaptionEditorToolbar({
               <Sparkles className="mr-2 h-4 w-4" />
             )}
             Generate all
+            {generateAllProgress && (
+              <span className="ml-2 font-normal opacity-90">
+                {generateAllProgress.completed}/{generateAllProgress.total}
+              </span>
+            )}
           </Button>
         )}
         {captions.length > 0 && (

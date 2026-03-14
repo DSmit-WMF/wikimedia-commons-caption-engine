@@ -39,6 +39,11 @@ export function useCaptionEditor({
 
   const [generatingLang, setGeneratingLang] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
+  /** When generate-all is running: { completed, total } for "2/5" style counter. */
+  const [generateAllProgress, setGenerateAllProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
   const [sendingLang, setSendingLang] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,30 +103,35 @@ export function useCaptionEditor({
       return;
     }
     setError(null);
+    const total = emptyNonCommonsLangs.length;
     setGeneratingAll(true);
+    setGenerateAllProgress({ completed: 0, total });
     try {
-      const translated = await translateCaptions(
-        [source],
-        emptyNonCommonsLangs,
-        descriptionContext
-      );
-      const byLang = new Map(translated.map((t) => [t.lang, t]));
-      const existing = captions.filter((c) => !emptyNonCommonsLangs.includes(c.lang));
-      onCaptionsChange([...existing, ...Array.from(byLang.values())]);
-      setDirtyLangs((prev) => {
-        const next = new Set(prev);
-        emptyNonCommonsLangs.forEach((l) => next.add(l));
-        return next;
-      });
-      setBaselineValues((prev) => {
-        const next = { ...prev };
-        byLang.forEach((item, l) => (next[l] = item.text ?? ""));
-        return next;
-      });
+      let currentCaptions = [...captions];
+      for (let i = 0; i < emptyNonCommonsLangs.length; i++) {
+        const lang = emptyNonCommonsLangs[i];
+        setGeneratingLang(lang);
+        setGenerateAllProgress({ completed: i, total });
+        try {
+          const translated = await translateCaptions([source], [lang], descriptionContext);
+          const item = translated.find((t) => t.lang === lang);
+          if (item?.text != null) {
+            const existing = currentCaptions.filter((c) => c.lang !== lang);
+            currentCaptions = [...existing, { lang, text: item.text }];
+            onCaptionsChange(currentCaptions);
+            setDirtyLangs((prev) => new Set(prev).add(lang));
+            setBaselineValues((prev) => ({ ...prev, [lang]: item.text }));
+          }
+        } finally {
+          setGeneratingLang(null);
+        }
+        setGenerateAllProgress({ completed: i + 1, total });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
       setGeneratingAll(false);
+      setGenerateAllProgress(null);
     }
   }, [captions, emptyNonCommonsLangs, onCaptionsChange, descriptionContext]);
 
@@ -273,6 +283,7 @@ export function useCaptionEditor({
     emptyNonCommonsLangs,
     generatingLang,
     generatingAll,
+    generateAllProgress,
     sendingLang,
     sendingAll,
     error,

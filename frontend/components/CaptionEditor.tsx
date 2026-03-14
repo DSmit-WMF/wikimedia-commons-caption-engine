@@ -30,6 +30,7 @@ export function CaptionEditor({
     emptyNonCommonsLangs,
     generatingLang,
     generatingAll,
+    generateAllProgress,
     sendingLang,
     sendingAll,
     error,
@@ -60,6 +61,7 @@ export function CaptionEditor({
         emptyNonCommonsLangs={emptyNonCommonsLangs}
         captions={captions}
         generatingAll={generatingAll}
+        generateAllProgress={generateAllProgress}
         onGenerateAll={generateAll}
         onCopyAll={copyAll}
         onExportJson={exportJson}
