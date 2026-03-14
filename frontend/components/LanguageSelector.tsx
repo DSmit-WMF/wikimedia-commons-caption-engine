@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -19,8 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getAllMediaWikiLanguages, getSuggestedLanguages, type MediaWikiLanguage } from "@/lib/api";
-import { useEffect } from "react";
-import { Languages, X } from "lucide-react";
+import { useFavouriteLanguages } from "@/lib/favourite-languages";
+import { Languages, X, Star } from "lucide-react";
 
 interface LanguageSelectorProps {
   selectedLanguages: string[];
@@ -36,6 +36,7 @@ export function LanguageSelector({
   const [open, setOpen] = useState(false);
   const [suggested, setSuggested] = useState<string[]>([]);
   const [allLanguages, setAllLanguages] = useState<MediaWikiLanguage[]>([]);
+  const { favourites, toggle: toggleFavourite, has: isFavourite } = useFavouriteLanguages();
 
   useEffect(() => {
     getSuggestedLanguages(preferredLang).then(setSuggested).catch(() => setSuggested(["en", "es", "fr"]));
@@ -98,11 +99,47 @@ export function LanguageSelector({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Select languages</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Click a language to add it. Star a language to save it as a favourite; favourites always appear at the top.
+            </p>
           </DialogHeader>
           <Command className="rounded-lg border">
             <CommandInput placeholder="Search languages..." />
             <CommandList>
               <CommandEmpty>No language found.</CommandEmpty>
+              {favourites.length > 0 && (
+                <CommandGroup heading="Favourites">
+                  {favourites.map((code) => (
+                    <CommandItem
+                      key={code}
+                      value={`fav ${code} ${languageName(code)}`}
+                      onSelect={() => addLanguage(code)}
+                    >
+                      <span className="flex-1">
+                        {languageName(code)} ({code})
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={isFavourite(code) ? "Remove from favourites" : "Add to favourites"}
+                        className="rounded p-0.5 hover:bg-muted"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleFavourite(code);
+                        }}
+                      >
+                        <Star
+                          className="h-4 w-4 fill-amber-400 text-amber-500"
+                          aria-hidden
+                        />
+                      </button>
+                      {selectedLanguages.includes(code) && (
+                        <span className="ml-2 text-muted-foreground text-xs">added</span>
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
               <CommandGroup heading="Suggested (from your preference)">
                 {suggested.slice(0, 6).map((code) => (
                   <CommandItem
@@ -110,11 +147,26 @@ export function LanguageSelector({
                     value={`${code} ${languageName(code)}`}
                     onSelect={() => addLanguage(code)}
                   >
-                    <span>
+                    <span className="flex-1">
                       {languageName(code)} ({code})
                     </span>
+                    <button
+                      type="button"
+                      aria-label={isFavourite(code) ? "Remove from favourites" : "Add to favourites"}
+                      className="rounded p-0.5 hover:bg-muted"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavourite(code);
+                      }}
+                    >
+                      <Star
+                        className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
+                        aria-hidden
+                      />
+                    </button>
                     {selectedLanguages.includes(code) && (
-                      <span className="ml-2 text-muted-foreground">added</span>
+                      <span className="ml-2 text-muted-foreground text-xs">added</span>
                     )}
                   </CommandItem>
                 ))}
@@ -128,9 +180,26 @@ export function LanguageSelector({
                       value={`${code} ${name}`}
                       onSelect={() => addLanguage(code)}
                     >
-                      {name} ({code})
+                      <span className="flex-1">
+                        {name} ({code})
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={isFavourite(code) ? "Remove from favourites" : "Add to favourites"}
+                        className="rounded p-0.5 hover:bg-muted"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleFavourite(code);
+                        }}
+                      >
+                        <Star
+                          className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
+                          aria-hidden
+                        />
+                      </button>
                       {selectedLanguages.includes(code) && (
-                        <span className="ml-2 text-muted-foreground">added</span>
+                        <span className="ml-2 text-muted-foreground text-xs">added</span>
                       )}
                     </CommandItem>
                   ))}

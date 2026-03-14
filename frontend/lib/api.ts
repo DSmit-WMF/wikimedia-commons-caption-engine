@@ -50,7 +50,10 @@ export async function getSuggestedLanguages(preferredLang: string): Promise<stri
 export interface MediaWikiLanguage {
   code: string;
   bcp47?: string;
+  /** Native name (autonym). */
   name: string;
+  /** English name from API (languageinfo uselang=en). */
+  nameEn?: string;
 }
 
 export async function getAllMediaWikiLanguages(): Promise<MediaWikiLanguage[]> {
@@ -64,7 +67,8 @@ export async function getAllMediaWikiLanguages(): Promise<MediaWikiLanguage[]> {
     ];
   }
   const data = await res.json();
-  return (data.languages ?? []) as MediaWikiLanguage[];
+  const list = (data.languages ?? []) as MediaWikiLanguage[];
+  return list;
 }
 
 /** Saves captions to Commons. The server uses COMMONS_OAUTH_TOKEN from env; no token is sent from the client. */
@@ -82,11 +86,21 @@ export async function saveCaptionsToCommons(
   return data;
 }
 
+export async function getRandomCommonsFile(): Promise<{
+  url: string;
+  title: string;
+} | null> {
+  const res = await fetch(`${API_URL}/api/commons/random-file`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function getCommonsFileInfo(urlOrTitle: string): Promise<{
   title: string;
   media_info_id: string;
   labels: Record<string, string>;
   descriptions?: Record<string, string>;
+  image_url?: string | null;
 } | null> {
   const isUrl = urlOrTitle.startsWith("http");
   const params = new URLSearchParams(isUrl ? { url: urlOrTitle } : { title: urlOrTitle });

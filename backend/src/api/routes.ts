@@ -129,4 +129,21 @@ router.get("/commons/file-info", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/commons/random-file", async (_req: Request, res: Response) => {
+  try {
+    const { getRandomFileWithLabels } = await import("../commons_adapter/resolve.js");
+    const result = await getRandomFileWithLabels();
+    if (!result) {
+      res.status(404).json({ error: "No random file with labels found after several tries" });
+      return;
+    }
+    res.json(result);
+  } catch (err: unknown) {
+    console.error("random-file error", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Failed to get random file",
+    });
+  }
+});
+
 export default router;

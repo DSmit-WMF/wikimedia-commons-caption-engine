@@ -67,6 +67,8 @@ export interface FileInfo {
   labels: Record<string, string>;
   /** Longer descriptions (e.g. Summary) per language — helps translation context. */
   descriptions: Record<string, string>;
+  /** Direct URL for a medium-sized thumbnail (for display in the UI). */
+  image_url: string | null;
 }
 
 /**
@@ -80,8 +82,10 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
   const params = new URLSearchParams({
     action: "query",
     titles: fileTitle,
-    prop: "pageprops",
+    prop: "pageprops|imageinfo",
     ppprop: "wikibase_item",
+    iiprop: "url",
+    iiurlwidth: "480",
     format: "json",
     origin: "*",
   });
@@ -94,6 +98,7 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
     title?: string;
     pageprops?: { wikibase_item?: string };
     missing?: boolean;
+    imageinfo?: { thumburl?: string; url?: string }[];
   } | undefined;
   if (!page || page.missing) {
     return null;
@@ -105,11 +110,14 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
     return null;
   }
   const { labels, descriptions } = await fetchLabelsAndDescriptions(mediaInfoId);
+  const imageUrl =
+    page.imageinfo?.[0]?.thumburl ?? page.imageinfo?.[0]?.url ?? null;
   return {
     title: page.title ?? fileTitle,
     media_info_id: mediaInfoId,
     labels: labels ?? {},
     descriptions: descriptions ?? {},
+    image_url: imageUrl,
   };
 }
 
@@ -137,4 +145,34 @@ async function fetchLabelsAndDescriptions(
   const labels = entity?.labels ? extractLangValues(entity.labels) : {};
   const descriptions = entity?.descriptions ? extractLangValues(entity.descriptions) : {};
   return { labels, descriptions };
+}
+
+const COMMONS_WIKI_BASE = "https://commons.wikimedia.org/wiki/";
+
+/**
+ * Fetch a random Commons file that has at least one label (caption).
+ * Tries up to maxTries times; returns null if none found.
+ */
+export async function getRandomFileWithLabels(
+  maxTries: number = 15,
+): Promise<{ url: string; title: string } | null> {
+  for (let i = 0; i < maxTries; i++) {
+    const params = new URLSearchParams({
+      action: "query",
+      list: "random",
+      rnnamespace: "6",
+      rnlimit: "1",
+      format: "json",
+      origin: "*",
+    });
+    const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
+    const rand = res.data?.query?.random?.[0] as { title?: string } | undefined;
+    const title = rand?.title;
+    if (!title) continue;
+    const info = await getFileInfo(title);
+    if (!info || Object.keys(info.labels ?? {}).length === 0) continue;
+    const url = `${COMMONS_WIKI_BASE}${encodeURIComponent(title)}`;
+    return { url, title: info.title ?? title };
+  }
+  return null;
 }

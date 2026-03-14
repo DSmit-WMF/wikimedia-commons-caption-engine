@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import {
   translateCaptions,
   validateCaption,
   saveCaptionsToCommons,
+  getAllMediaWikiLanguages,
   type CaptionItem,
 } from "@/lib/api";
 import { Loader2, Copy, Download, Send, Sparkles, Check } from "lucide-react";
@@ -43,14 +44,46 @@ export function CaptionEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [sentLangs, setSentLangs] = useState<Set<string>>(new Set());
   const [dirtyLangs, setDirtyLangs] = useState<Set<string>>(new Set());
+  const [languageNames, setLanguageNames] = useState<Record<string, string>>({});
+  const [languageNamesEn, setLanguageNamesEn] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getAllMediaWikiLanguages().then((list) => {
+      const nameMap: Record<string, string> = {};
+      const nameEnMap: Record<string, string> = {};
+      for (const { code, name, nameEn } of list) {
+        nameMap[code] = name;
+        if (nameEn) nameEnMap[code] = nameEn;
+      }
+      setLanguageNames(nameMap);
+      setLanguageNamesEn(nameEnMap);
+    });
+  }, []);
+
+  /** Language name from MW API (native name), fallback to code. */
+  const displayName = (code: string) =>
+    languageNames[code] || code;
+
+  /** English name from MW API (languageinfo uselang=en). */
+  const englishName = (code: string) => languageNamesEn[code];
+
+  /** Label: Name (English - code) or Name (code) when no English from API. */
+  const labelText = (code: string) => {
+    const name = displayName(code);
+    const en = englishName(code);
+    return en ? `${name} (${en} - ${code})` : `${name} (${code})`;
+  };
+
+  /** Placeholder: Caption in Name (English - code). */
+  const placeholderText = (code: string) =>
+    `Caption in ${labelText(code)}`;
 
   const displayLangs = [
     ...new Set([...languages, ...captions.map((c) => c.lang)]),
   ];
 
-  /** Show Generate for any row not loaded from Commons (so user can (re)generate translation). */
-  const showGenerateForLang = (lang: string): boolean =>
-    !languagesFromCommons.has(lang);
+  /** Always show Generate so the user can overwrite or translate into this language. */
+  const showGenerateForLang = (_lang: string): boolean => true;
 
   /** Languages that have no text and are not from Commons — targets for "Generate all". */
   const emptyNonCommonsLangs = displayLangs.filter(
@@ -281,10 +314,10 @@ export function CaptionEditor({
               className={`space-y-2 ${isSent ? "rounded-md border border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20 p-3" : ""}`}
             >
               <Label htmlFor={`caption-${lang}`}>
-                {lang.toUpperCase()}
+                {labelText(lang)}
                 {fromCommons && (
                   <span className="ml-2 text-muted-foreground font-normal text-xs">
-                    (from Commons — edit only)
+                    (from Commons)
                   </span>
                 )}
                 {isSent && (
@@ -299,7 +332,7 @@ export function CaptionEditor({
                   id={`caption-${lang}`}
                   value={value}
                   onChange={(e) => updateCaption(lang, e.target.value)}
-                  placeholder={`Caption in ${lang}`}
+                  placeholder={placeholderText(lang)}
                   maxLength={500}
                   className={`flex-1 min-w-[200px] ${fieldErrors[lang] ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
