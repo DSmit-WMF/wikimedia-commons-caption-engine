@@ -1,8 +1,7 @@
+import { LANGUAGE_NAMES, translationUserPrompt } from "./prompts.js";
+
 import OpenAI from "openai";
-import {
-  translationUserPrompt,
-  LANGUAGE_NAMES,
-} from "./prompts.js";
+import { config } from "../config.js";
 
 /**
  * Translate a caption into target languages using OpenAI.
@@ -24,7 +23,7 @@ export async function translateCaptions(
       continue;
     }
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: config.openaiModel,
       max_tokens: 150,
       messages: [
         {
@@ -34,7 +33,9 @@ export async function translateCaptions(
       ],
     });
     const text =
-      response.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") ?? sourceCaption;
+      response.choices[0]?.message?.content
+        ?.trim()
+        .replace(/^["']|["']$/g, "") ?? sourceCaption;
     results.push({ lang, text });
   }
 

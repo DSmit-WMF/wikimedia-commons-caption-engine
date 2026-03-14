@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Commons Caption Suggestion Tool API
+  title: Wikimedia Commons Caption Translation Tool API
   description: |
-    Backend API for the Commons Caption Suggestion Tool. Used to load Commons file metadata,
+    Backend API for the Wikimedia Commons Caption Translation Tool. Used to load Commons file metadata,
     translate captions via OpenAI, validate caption text, and save labels to Commons.
   version: 1.0.0
 

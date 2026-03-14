@@ -1,4 +1,4 @@
-# OAuth for Commons Caption Suggestion Tool
+# OAuth for Wikimedia Commons Caption Translation Tool
 
 This document describes how to use OAuth with the caption tool: **owner-only** (single-account, dev/demo) and **per-user** (multi-user, each person saves as themselves).
 

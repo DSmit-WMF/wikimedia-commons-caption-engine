@@ -1,6 +1,6 @@
-# Commons Caption Suggestion Tool
+# Wikimedia Commons Caption Translation Tool
 
-AI-assisted multilingual caption suggestions for Wikimedia Commons. Human-in-the-loop: you review and edit captions before saving.
+AI-assisted multilingual caption translation for Wikimedia Commons. Human-in-the-loop: you review and edit captions before saving.
 
 ---
 
@@ -25,6 +25,14 @@ Edit `.env` and set:
 OPENAI_API_KEY=sk-your-key-here
 ```
 
+Optional:
+
+- **`OPENAI_MODEL`** — Model for translation and caption generation (default: `gpt-5-nano`). Guide:
+  - **gpt-5-nano** — High-throughput, straightforward instruction-following (default; good for translation).
+  - **gpt-5-mini** — Cost-optimized reasoning and chat; balances speed, cost, and capability.
+  - **gpt-5.4** — General-purpose work, complex reasoning, broad knowledge.
+  - **gpt-5.4-pro** — Tough problems needing deeper reasoning.
+
 Optional (for saving captions to Commons):
 
 ```env
@@ -38,7 +46,7 @@ COMMONS_OAUTH_TOKEN=your-owner-only-oauth2-token
 3. Fill in a name and description for your app, set the grant type to **owner-only**, then submit.
 4. Under **Applicable grants**, request only **Edit existing pages**. (That is enough to set captions on existing Commons files. Do not request upload, delete, block, or other grants.)
 5. On the result page, copy the **access token** and paste it into `.env` as `COMMONS_OAUTH_TOKEN`.
-  (Store it securely; the token is shown only once. If you lose it, create a new consumer.)
+   (Store it securely; the token is shown only once. If you lose it, create a new consumer.)
 
 Without this token you can still generate and edit captions; only the “Save to Commons” step will be disabled.
 
@@ -82,6 +90,7 @@ cd frontend && npm install && npm run dev
 3. Choose languages (default: en, es, fr, ar, zh) with “Add or remove languages”. Star a language in the picker to add it to **Favourites** (stored in the browser); favourites always appear at the top.
 4. Rows marked **(from Commons)** were loaded from the file; you can **edit** them or use **Generate** to overwrite with a new translation. For any language without a caption, use **Generate** (that row) or **Generate all** to translate from an existing caption.
 5. Edit captions as needed. **Send** (per row) or **Send all** (footer) validates and saves to Commons. Validation errors appear under the field; after a successful send the row is marked “Sent” and **Send** is disabled until you edit or regenerate.
+6. **Revert** (per row) restores that caption to the last loaded or last sent value. **Skip to captions** in the header (or **Alt+C**) jumps to the Captions section.
 
 ---
 
@@ -106,12 +115,16 @@ Full request/response contract: **[openapi.yaml](openapi.yaml)** (OpenAPI 3.0).
 
 ## Frontend (shadcn/ui)
 
-The UI uses [shadcn/ui](https://ui.shadcn.com/) with **Radix UI** primitives and the **Command** component (cmdk) for the language selector. Language labels and placeholders use native and English names from the API (e.g. “中文 (Chinese - zh)”). **Generate** is available for every language row (including those loaded from Commons). Validation runs when you click **Send** or **Send all**; errors are shown per field. Favourite languages are stored in `localStorage`.
+The UI uses [shadcn/ui](https://ui.shadcn.com/) with **Radix UI** primitives and the **Command** component (cmdk) for the language selector. Language labels and placeholders use native and English names from the API (e.g. “中文 (Chinese - zh)”). **Generate** is available for every language row (including those loaded from Commons). Validation runs when you click **Send** or **Send all**; errors are shown per field. Favourite languages are stored in `localStorage`. **Revert** restores a row to its baseline (loaded or last sent). Power users: use **Skip to captions** or **Alt+C** to jump to the Captions section.
 
 ## Integration and multi-user OAuth
 
 - **Reuse and per-user OAuth:** [INTEGRATION.md](INTEGRATION.md)
 - **OAuth setup (owner-only and per-user):** [docs/OAUTH.md](docs/OAUTH.md)
+
+## Future work
+
+- **i18n the app** — Internationalize the UI (labels, buttons, messages) so the tool can be used in the contributor’s preferred language (e.g. next-intl, react-i18next, or Next.js built-in i18n).
 
 ## License
 

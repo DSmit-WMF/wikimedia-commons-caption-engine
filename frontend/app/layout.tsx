@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
 import "./globals.css";
+
 import { AuthProvider } from "@/contexts/AuthContext";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Commons Caption Suggestion Tool",
-  description: "AI-assisted multilingual caption suggestions for Wikimedia Commons",
+  title: "Wikimedia Commons Caption Translation Tool",
+  description:
+    "AI-assisted multilingual caption translation for Wikimedia Commons",
 };
 
 export default function RootLayout({
@@ -15,9 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

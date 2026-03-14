@@ -1,5 +1,6 @@
-import OpenAI from "openai";
 import { CAPTION_SYSTEM_PROMPT } from "./prompts.js";
+import OpenAI from "openai";
+import { config } from "../config.js";
 import { validateCaption } from "./validate.js";
 
 export interface CaptionPreviewResult {
@@ -13,10 +14,10 @@ export interface CaptionPreviewResult {
 export async function generateCaption(
   client: OpenAI,
   imageBase64: string,
-  mimeType: string = "image/jpeg"
+  mimeType: string = "image/jpeg",
 ): Promise<CaptionPreviewResult> {
   const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: config.openaiModel,
     max_tokens: 150,
     messages: [
       { role: "system", content: CAPTION_SYSTEM_PROMPT },
