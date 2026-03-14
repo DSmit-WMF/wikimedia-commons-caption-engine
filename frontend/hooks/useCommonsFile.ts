@@ -73,7 +73,9 @@ function applyFileInfo(
   setters.setFileIdentifier(info.title ?? url);
   setters.setImageUrl(info.image_url ?? null);
   const descs = info.descriptions ?? {};
-  setters.setDescriptionContext(descs.en ?? descs[Object.keys(descs)[0]] ?? "");
+  // Prefer file-page description (Information template / Summary); fall back to Wikibase descriptions.
+  const context = info.page_description?.trim() ?? descs.en ?? descs[Object.keys(descs)[0]] ?? "";
+  setters.setDescriptionContext(context);
   setters.setLoadKey((k) => k + 1);
 }
 
@@ -101,6 +103,8 @@ export function useCommonsFile() {
 
   /** When set, useQuery fetches file info; changing this aborts the previous request. */
   const [loadRequestUrl, setLoadRequestUrl] = useState<string | null>(null);
+  /** Increments on each Load click so the same URL triggers a refetch. */
+  const [singleLoadKey, setSingleLoadKey] = useState(0);
   /** When set, useQuery fetches batch; changing this aborts the previous request. */
   const [batchRequestIds, setBatchRequestIds] = useState<string[] | null>(null);
   /** Increments on each Load batch click so the same URL list can be refetched (React Query keys are deep-equal). */
@@ -111,7 +115,7 @@ export function useCommonsFile() {
   });
 
   const fileQuery = useQuery({
-    queryKey: ["commons-file", loadRequestUrl],
+    queryKey: ["commons-file", loadRequestUrl, singleLoadKey],
     queryFn: async ({ signal }) => {
       if (!loadRequestUrl) return null;
       return getCommonsFileInfo(loadRequestUrl, { signal });
@@ -169,6 +173,7 @@ export function useCommonsFile() {
       setLoadError(null);
       setNoCaptionsMessage(null);
       setLoadingSource("load");
+      setSingleLoadKey((k) => k + 1);
       setLoadRequestUrl(url);
     },
     [commonsUrl]

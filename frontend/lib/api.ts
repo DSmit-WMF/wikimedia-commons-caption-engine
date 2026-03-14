@@ -190,6 +190,8 @@ export interface CommonsFileInfo {
   media_info_id: string;
   labels: Record<string, string>;
   descriptions?: Record<string, string>;
+  /** Description from the file page (Information template / Summary). Used as translation context. */
+  page_description?: string | null;
   image_url?: string | null;
 }
 

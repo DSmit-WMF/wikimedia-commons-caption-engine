@@ -70,6 +70,8 @@ export interface FileInfo {
   labels: Record<string, string>;
   /** Longer descriptions (e.g. Summary) per language — helps translation context. */
   descriptions: Record<string, string>;
+  /** Description from the file page (Information template / Summary). Shown as translation context when present. */
+  page_description: string | null;
   /** Direct URL for a medium-sized thumbnail (for display in the UI). */
   image_url: string | null;
 }
@@ -86,7 +88,7 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
     titles: fileTitle,
     prop: "pageprops|imageinfo",
     ppprop: "wikibase_item",
-    iiprop: "url",
+    iiprop: "url|extmetadata",
     iiurlwidth: "480",
     format: "json",
     origin: "*",
@@ -101,7 +103,11 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
         title?: string;
         pageprops?: { wikibase_item?: string };
         missing?: boolean;
-        imageinfo?: { thumburl?: string; url?: string }[];
+        imageinfo?: {
+          thumburl?: string;
+          url?: string;
+          extmetadata?: { ImageDescription?: { value?: string } };
+        }[];
       }
     | undefined;
   if (!page || page.missing) {
@@ -116,11 +122,14 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
   }
   const { labels, descriptions } = await fetchLabelsAndDescriptions(mediaInfoId);
   const imageUrl = page.imageinfo?.[0]?.thumburl ?? page.imageinfo?.[0]?.url ?? null;
+  const pageDescription =
+    page.imageinfo?.[0]?.extmetadata?.ImageDescription?.value?.trim() ?? null;
   return {
     title: page.title ?? fileTitle,
     media_info_id: mediaInfoId,
     labels: labels ?? {},
     descriptions: descriptions ?? {},
+    page_description: pageDescription,
     image_url: imageUrl,
   };
 }
