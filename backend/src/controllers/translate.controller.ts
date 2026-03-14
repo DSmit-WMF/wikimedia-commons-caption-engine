@@ -5,19 +5,14 @@ import { Request, Response } from "express";
 import { config } from "../config.js";
 import { translateCaptionsSchema } from "../api/schemas.js";
 
-export async function translateCaptions(
-  req: Request,
-  res: Response,
-): Promise<void> {
+export async function translateCaptions(req: Request, res: Response): Promise<void> {
   if (!config.openaiApiKey) {
     res.status(503).json({ error: "OpenAI API key not configured" });
     return;
   }
   const parsed = translateCaptionsSchema.safeParse(req.body);
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({ error: "Invalid body", details: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
     return;
   }
   const { captions, target_langs, description_context } = parsed.data;

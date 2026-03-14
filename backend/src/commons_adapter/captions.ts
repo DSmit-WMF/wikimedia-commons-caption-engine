@@ -8,9 +8,7 @@ const commonsHeaders = { "User-Agent": WIKIMEDIA_USER_AGENT };
 /**
  * Resolve file identifier (URL or title) to MediaInfo entity ID (e.g. M123).
  */
-export async function resolveFileToMediaInfoId(
-  identifier: string,
-): Promise<string | null> {
+export async function resolveFileToMediaInfoId(identifier: string): Promise<string | null> {
   const info = await getFileInfo(identifier);
   return info?.media_info_id ?? null;
 }
@@ -37,12 +35,11 @@ async function getCsrfToken(oauthToken: string): Promise<string> {
     throw new Error(`Commons API (tokens): ${err.code} - ${err.info}`);
   }
   const tokens = res.data?.query?.tokens;
-  const token =
-    tokens?.csrftoken ?? tokens?.csrf ?? (tokens && Object.values(tokens)[0]);
+  const token = tokens?.csrftoken ?? tokens?.csrf ?? (tokens && Object.values(tokens)[0]);
   const value = typeof token === "string" ? token.trim() : "";
   if (!value || value.length < 10) {
     throw new Error(
-      "Commons API did not return a valid CSRF token. Ensure COMMONS_OAUTH_TOKEN has 'Edit existing pages' grant and is not expired.",
+      "Commons API did not return a valid CSRF token. Ensure COMMONS_OAUTH_TOKEN has 'Edit existing pages' grant and is not expired."
     );
   }
   return value;
@@ -55,7 +52,7 @@ async function getCsrfToken(oauthToken: string): Promise<string> {
 export async function saveLabels(
   mediaInfoId: string,
   captions: { lang: string; text: string }[],
-  oauthToken: string,
+  oauthToken: string
 ): Promise<void> {
   const csrfToken = await getCsrfToken(oauthToken);
 
@@ -78,15 +75,8 @@ export async function saveLabels(
     });
     const err = res.data?.error;
     if (err) {
-      console.error(
-        "error saving labels to MediaInfo",
-        mediaInfoId,
-        captions,
-        err,
-      );
-      throw new Error(
-        `Commons API (wbsetlabel, ${lang}): ${err.code} - ${err.info}`,
-      );
+      console.error("error saving labels to MediaInfo", mediaInfoId, captions, err);
+      throw new Error(`Commons API (wbsetlabel, ${lang}): ${err.code} - ${err.info}`);
     }
   }
 }

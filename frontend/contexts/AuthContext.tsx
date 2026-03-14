@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
 /** Per-user OAuth access token for Commons. When set, save-captions uses it instead of server-side owner-only token. */
 export interface AuthContextValue {
@@ -30,11 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken,
     isPerUserMode: accessToken != null && accessToken.length > 0,
   };
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

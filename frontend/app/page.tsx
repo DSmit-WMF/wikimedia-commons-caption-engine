@@ -1,131 +1,67 @@
 "use client";
 
-import {
-  CAPTIONS_SECTION_ID,
-  useCommonsFile,
-  useSkipToCaptions,
-} from "@/hooks";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useCommonsFile, useSkipToCaptions } from "@/hooks";
 
-import { CaptionEditor } from "@/components/CaptionEditor";
-import { CommonsFileCard } from "@/components/commons/CommonsFileCard";
-import { ImagePreviewCard } from "@/components/commons/ImagePreviewCard";
-import { LanguageSelector } from "@/components/LanguageSelector";
+import { CaptionsSection } from "@/components/captions/CaptionsSection";
+import { CommonsFileSection } from "@/components/commons/CommonsFileSection";
+import { LanguagesSection } from "@/components/LanguagesSection";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 
-export default function Home() {
-  const {
-    commonsUrl,
-    handleCommonsUrlChange,
-    captions,
-    setCaptions,
-    languages,
-    setLanguages,
-    languagesFromCommons,
-    fileIdentifier,
-    imageUrl,
-    descriptionContext,
-    loadKey,
-    loadError,
-    loadLoading,
-    loadingSource,
-    noCaptionsMessage,
-    handleLoad,
-    handleRandom,
-    showCaptionUI,
-  } = useCommonsFile();
+const INTRO_TEXT =
+  "Paste a Commons file URL to load existing captions, translate them into more languages, and save back to Commons.";
 
+export default function Home() {
+  const commons = useCommonsFile();
   useSkipToCaptions();
 
   return (
     <main className="min-h-screen flex flex-col">
-      <SiteHeader showSkipToCaptions={!!showCaptionUI} />
+      <SiteHeader showSkipToCaptions={!!commons.showCaptionUI} />
       <div className="container mx-auto max-w-4xl p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1">
-        <p className="text-muted-foreground text-sm text-left">
-          Paste a Commons file URL to load existing captions, translate them
-          into more languages, and save back to Commons.
-        </p>
+        <p className="text-muted-foreground text-sm text-left">{INTRO_TEXT}</p>
 
-        {imageUrl ? (
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-            <CommonsFileCard
-              commonsUrl={commonsUrl}
-              onCommonsUrlChange={handleCommonsUrlChange}
-              loadLoading={loadLoading}
-              loadingSource={loadingSource}
-              onLoad={() => handleLoad()}
-              onRandom={handleRandom}
-              loadError={loadError}
-              noCaptionsMessage={noCaptionsMessage}
-              descriptionContext={descriptionContext}
-              hasImage={true}
-            />
-            <ImagePreviewCard
-              imageUrl={imageUrl}
-              fileIdentifier={fileIdentifier}
-              commonsUrl={commonsUrl}
-            />
-          </div>
-        ) : (
-          <CommonsFileCard
-            commonsUrl={commonsUrl}
-            onCommonsUrlChange={handleCommonsUrlChange}
-            loadLoading={loadLoading}
-            loadingSource={loadingSource}
-            onLoad={() => handleLoad()}
-            onRandom={handleRandom}
-            loadError={loadError}
-            noCaptionsMessage={noCaptionsMessage}
-            descriptionContext={descriptionContext}
-            hasImage={false}
-          />
-        )}
+        <CommonsFileSection
+          commonsUrl={commons.commonsUrl}
+          onCommonsUrlChange={commons.handleCommonsUrlChange}
+          loadLoading={commons.loadLoading}
+          loadingSource={commons.loadingSource}
+          onLoad={() => commons.handleLoad()}
+          onRandom={commons.handleRandom}
+          loadError={commons.loadError}
+          noCaptionsMessage={commons.noCaptionsMessage}
+          descriptionContext={commons.descriptionContext}
+          imageUrl={commons.imageUrl}
+          fileIdentifier={commons.fileIdentifier}
+          batchUrlList={commons.batchUrlList}
+          onBatchUrlListChange={commons.setBatchUrlList}
+          batchResults={commons.batchResults}
+          batchLoading={commons.batchLoading}
+          onLoadBatch={commons.loadBatch}
+          onOpenFromBatch={commons.openFromBatch}
+        />
 
-        {showCaptionUI && fileIdentifier && (
+        {commons.showCaptionUI && commons.fileIdentifier && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Languages</CardTitle>
-                <CardDescription>
-                  Choose languages for caption translation (default: en, es, fr,
-                  ar, zh)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <LanguageSelector
-                  selectedLanguages={languages}
-                  onLanguagesChange={setLanguages}
-                  preferredLang="en"
-                />
-              </CardContent>
-            </Card>
-
-            <Card id={CAPTIONS_SECTION_ID} className="scroll-mt-4">
-              <CardHeader>
-                <CardTitle>Captions</CardTitle>
-                <CardDescription>
-                  Edit captions, generate translations for new languages, then
-                  send to Commons
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CaptionEditor
-                  key={loadKey}
-                  captions={captions}
-                  onCaptionsChange={setCaptions}
-                  languages={languages}
-                  languagesFromCommons={languagesFromCommons}
-                  fileIdentifier={fileIdentifier}
-                  descriptionContext={descriptionContext || undefined}
-                />
-              </CardContent>
-            </Card>
+            <LanguagesSection
+              selectedLanguages={commons.languages}
+              onLanguagesChange={commons.setLanguages}
+              preferredLang="en"
+            />
+            <CaptionsSection
+              loadKey={commons.loadKey}
+              captions={commons.captions}
+              onCaptionsChange={commons.setCaptions}
+              languages={commons.languages}
+              languagesFromCommons={commons.languagesFromCommons}
+              fileIdentifier={commons.fileIdentifier}
+              descriptionContext={commons.descriptionContext ?? undefined}
+              currentBatchIndex={commons.currentBatchIndex}
+              successfulBatchItems={commons.successfulBatchItems}
+              canGoBatchPrev={commons.canGoBatchPrev}
+              canGoBatchNext={commons.canGoBatchNext}
+              onBatchPrev={commons.goToBatchPrev}
+              onBatchNext={commons.goToBatchNext}
+            />
           </div>
         )}
       </div>

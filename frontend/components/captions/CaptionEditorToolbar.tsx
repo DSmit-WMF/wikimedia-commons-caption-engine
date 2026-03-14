@@ -34,11 +34,7 @@ export function CaptionEditorToolbar({
           <Button
             variant="default"
             onClick={onGenerateAll}
-            disabled={
-              generatingAll ||
-              emptyNonCommonsLangs.length === 0 ||
-              !sourceCaption
-            }
+            disabled={generatingAll || emptyNonCommonsLangs.length === 0 || !sourceCaption}
           >
             {generatingAll ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

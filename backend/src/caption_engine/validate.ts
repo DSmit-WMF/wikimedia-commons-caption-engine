@@ -52,11 +52,7 @@ export function validateCaption(text: string): ValidationResult {
     }
   }
 
-  if (
-    lower.includes("copyright") ||
-    lower.includes("license") ||
-    lower.includes("©")
-  ) {
+  if (lower.includes("copyright") || lower.includes("license") || lower.includes("©")) {
     warnings.push("Do not include copyright or licensing text in the caption.");
   }
 

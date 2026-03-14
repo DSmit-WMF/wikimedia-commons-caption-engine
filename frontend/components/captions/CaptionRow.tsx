@@ -48,8 +48,7 @@ export function CaptionRow({
   onSend,
 }: CaptionRowProps) {
   const canRevert = value !== (baselineValue ?? "");
-  const canSend =
-    value.trim() && isDirty && sendingLang === null && !sendingAll;
+  const canSend = value.trim() && isDirty && sendingLang === null && !sendingAll;
 
   return (
     <div
@@ -62,9 +61,7 @@ export function CaptionRow({
       <Label htmlFor={`caption-${lang}`}>
         {labelText}
         {fromCommons && (
-          <span className="ml-2 text-muted-foreground font-normal text-xs">
-            (from Commons)
-          </span>
+          <span className="ml-2 text-muted-foreground font-normal text-xs">(from Commons)</span>
         )}
         {isSent && (
           <span className="ml-2 inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200">
@@ -81,9 +78,7 @@ export function CaptionRow({
           placeholder={placeholderText}
           maxLength={CAPTION_MAX_LENGTH}
           className={`flex-1 min-w-[200px] ${
-            fieldError
-              ? "border-destructive focus-visible:ring-destructive"
-              : ""
+            fieldError ? "border-destructive focus-visible:ring-destructive" : ""
           }`}
         />
         <Button
@@ -113,13 +108,7 @@ export function CaptionRow({
             Revert
           </Button>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canSend}
-          onClick={onSend}
-        >
+        <Button type="button" variant="outline" size="sm" disabled={!canSend} onClick={onSend}>
           {sendingLang === lang ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

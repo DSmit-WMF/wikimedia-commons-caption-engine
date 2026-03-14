@@ -14,11 +14,11 @@ export interface CaptionPreviewResult {
 export async function generateCaption(
   client: OpenAI,
   imageBase64: string,
-  mimeType: string = "image/jpeg",
+  mimeType: string = "image/jpeg"
 ): Promise<CaptionPreviewResult> {
   const response = await client.chat.completions.create({
     model: config.openaiModel,
-    max_tokens: 150,
+    max_completion_tokens: config.openaiMaxCompletionTokens,
     messages: [
       { role: "system", content: CAPTION_SYSTEM_PROMPT },
       {
@@ -35,9 +35,7 @@ export async function generateCaption(
     ],
   });
 
-  const caption =
-    response.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") ??
-    "";
+  const caption = response.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") ?? "";
 
   const validation = validateCaption(caption);
   return {

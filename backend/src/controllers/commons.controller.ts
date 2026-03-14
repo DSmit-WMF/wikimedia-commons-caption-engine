@@ -1,9 +1,9 @@
 import * as commonsService from "../services/commons.service.js";
 
 import { Request, Response } from "express";
+import { batchFileInfoSchema, saveCaptionsSchema } from "../api/schemas.js";
 
 import { config } from "../config.js";
-import { saveCaptionsSchema } from "../api/schemas.js";
 
 export async function getFileInfo(req: Request, res: Response): Promise<void> {
   const url = req.query.url as string | undefined;
@@ -21,10 +21,7 @@ export async function getFileInfo(req: Request, res: Response): Promise<void> {
   res.json(info);
 }
 
-export async function getRandomFile(
-  _req: Request,
-  res: Response,
-): Promise<void> {
+export async function getRandomFile(_req: Request, res: Response): Promise<void> {
   const result = await commonsService.getRandomFileWithLabels();
   if (!result) {
     res.status(404).json({
@@ -35,17 +32,23 @@ export async function getRandomFile(
   res.json(result);
 }
 
+export async function batchFileInfo(req: Request, res: Response): Promise<void> {
+  const parsed = batchFileInfoSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
+    return;
+  }
+  const results = await commonsService.batchGetFileInfo(parsed.data.identifiers);
+  res.json({ results });
+}
+
 export async function saveCaptions(req: Request, res: Response): Promise<void> {
   const parsed = saveCaptionsSchema.safeParse(req.body);
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({ error: "Invalid body", details: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
     return;
   }
-  const bearer = req.headers.authorization
-    ?.match(/^Bearer\s+(.+)$/i)?.[1]
-    ?.trim();
+  const bearer = req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   const token = parsed.data.oauth_token ?? bearer ?? config.commonsOAuthToken;
   if (!token) {
     res.status(503).json({
@@ -54,9 +57,7 @@ export async function saveCaptions(req: Request, res: Response): Promise<void> {
     });
     return;
   }
-  const fileId = await commonsService.resolveFileToMediaInfoId(
-    parsed.data.file_identifier,
-  );
+  const fileId = await commonsService.resolveFileToMediaInfoId(parsed.data.file_identifier);
   if (!fileId) {
     res.status(404).json({ error: "File or MediaInfo not found" });
     return;

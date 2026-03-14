@@ -5,8 +5,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Wikimedia Commons Caption Translation Tool",
-  description:
-    "AI-assisted multilingual caption translation for Wikimedia Commons",
+  description: "AI-assisted multilingual caption translation for Wikimedia Commons",
 };
 
 export default function RootLayout({

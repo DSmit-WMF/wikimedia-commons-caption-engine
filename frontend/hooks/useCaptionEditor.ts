@@ -11,9 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFavouriteLanguages } from "@/lib/favourite-languages";
 import { useLanguageNames } from "./useLanguageNames";
 
-export function getSourceCaption(
-  captions: CaptionItem[],
-): CaptionItem | undefined {
+export function getSourceCaption(captions: CaptionItem[]): CaptionItem | undefined {
   const withText = captions.filter((c) => c.text.trim());
   return withText.find((c) => c.lang === "en") ?? withText[0];
 }
@@ -47,18 +45,13 @@ export function useCaptionEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [sentLangs, setSentLangs] = useState<Set<string>>(new Set());
   const [dirtyLangs, setDirtyLangs] = useState<Set<string>>(new Set());
-  const [baselineValues, setBaselineValues] = useState<Record<string, string>>(
-    {},
-  );
+  const [baselineValues, setBaselineValues] = useState<Record<string, string>>({});
 
-  const displayLangs = [
-    ...new Set([...languages, ...favourites, ...captions.map((c) => c.lang)]),
-  ];
+  const displayLangs = [...new Set([...languages, ...favourites, ...captions.map((c) => c.lang)])];
 
   const emptyNonCommonsLangs = displayLangs.filter(
     (lang) =>
-      !languagesFromCommons.has(lang) &&
-      !captions.find((c) => c.lang === lang)?.text?.trim(),
+      !languagesFromCommons.has(lang) && !captions.find((c) => c.lang === lang)?.text?.trim()
   );
 
   useEffect(() => {
@@ -79,11 +72,7 @@ export function useCaptionEditor({
       setError(null);
       setGeneratingLang(lang);
       try {
-        const translated = await translateCaptions(
-          [source],
-          [lang],
-          descriptionContext,
-        );
+        const translated = await translateCaptions([source], [lang], descriptionContext);
         const next = translated.filter((t) => t.lang === lang);
         if (next.length === 0) return;
         const existing = captions.filter((c) => c.lang !== lang);
@@ -98,7 +87,7 @@ export function useCaptionEditor({
         setGeneratingLang(null);
       }
     },
-    [captions, onCaptionsChange, descriptionContext],
+    [captions, onCaptionsChange, descriptionContext]
   );
 
   const generateAll = useCallback(async () => {
@@ -114,12 +103,10 @@ export function useCaptionEditor({
       const translated = await translateCaptions(
         [source],
         emptyNonCommonsLangs,
-        descriptionContext,
+        descriptionContext
       );
       const byLang = new Map(translated.map((t) => [t.lang, t]));
-      const existing = captions.filter(
-        (c) => !emptyNonCommonsLangs.includes(c.lang),
-      );
+      const existing = captions.filter((c) => !emptyNonCommonsLangs.includes(c.lang));
       onCaptionsChange([...existing, ...Array.from(byLang.values())]);
       setDirtyLangs((prev) => {
         const next = new Set(prev);
@@ -158,7 +145,7 @@ export function useCaptionEditor({
       }
       setDirtyLangs((prev) => new Set(prev).add(lang));
     },
-    [captions, onCaptionsChange],
+    [captions, onCaptionsChange]
   );
 
   const sendOne = useCallback(
@@ -197,7 +184,7 @@ export function useCaptionEditor({
         setSendingLang(null);
       }
     },
-    [captions, fileIdentifier, accessToken],
+    [captions, fileIdentifier, accessToken]
   );
 
   const sendAll = useCallback(async () => {
@@ -260,7 +247,7 @@ export function useCaptionEditor({
         return nextErr;
       });
     },
-    [baselineValues, captions, onCaptionsChange],
+    [baselineValues, captions, onCaptionsChange]
   );
 
   const copyAll = useCallback(() => {

@@ -1,0 +1,13 @@
+{
+  "name": "caption-engine",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"frontend/**/*.{ts,tsx,js,jsx,json,css,md}\" \"backend/**/*.{ts,js,json}\" \"*.{ts,js,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"frontend/**/*.{ts,tsx,js,jsx,json,css,md}\" \"backend/**/*.{ts,js,json}\" \"*.{ts,js,json,md,yaml,yml}\"",
+    "lint": "npm run lint --prefix frontend",
+    "lint:fix": "npm run lint:fix --prefix frontend"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}

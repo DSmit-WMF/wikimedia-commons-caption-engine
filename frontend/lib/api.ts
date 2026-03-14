@@ -8,7 +8,7 @@ export interface CaptionItem {
 export async function translateCaptions(
   captions: CaptionItem[],
   targetLangs: string[],
-  descriptionContext?: string,
+  descriptionContext?: string
 ): Promise<CaptionItem[]> {
   const body: { captions: CaptionItem[]; target_langs: string[]; description_context?: string } = {
     captions,
@@ -28,7 +28,10 @@ export async function translateCaptions(
   return data.captions ?? [];
 }
 
-export async function validateCaption(text: string, lang?: string): Promise<{ valid: boolean; warnings: string[] }> {
+export async function validateCaption(
+  text: string,
+  lang?: string
+): Promise<{ valid: boolean; warnings: string[] }> {
   const res = await fetch(`${API_URL}/api/validate-caption`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -112,16 +115,39 @@ export async function getRandomCommonsFile(): Promise<{
   return res.json();
 }
 
-export async function getCommonsFileInfo(urlOrTitle: string): Promise<{
+export interface CommonsFileInfo {
   title: string;
   media_info_id: string;
   labels: Record<string, string>;
   descriptions?: Record<string, string>;
   image_url?: string | null;
-} | null> {
+}
+
+export async function getCommonsFileInfo(urlOrTitle: string): Promise<CommonsFileInfo | null> {
   const isUrl = urlOrTitle.startsWith("http");
   const params = new URLSearchParams(isUrl ? { url: urlOrTitle } : { title: urlOrTitle });
   const res = await fetch(`${API_URL}/api/commons/file-info?${params}`);
   if (!res.ok) return null;
   return res.json();
+}
+
+export interface BatchFileInfoItem {
+  identifier: string;
+  success: boolean;
+  file_info?: CommonsFileInfo;
+  error?: string;
+}
+
+export async function getBatchFileInfo(identifiers: string[]): Promise<BatchFileInfoItem[]> {
+  const res = await fetch(`${API_URL}/api/commons/batch-file-info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifiers }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? "Batch load failed");
+  }
+  const data = await res.json();
+  return data.results ?? [];
 }

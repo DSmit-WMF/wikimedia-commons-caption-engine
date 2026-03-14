@@ -5,12 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { getAllMediaWikiLanguages } from "@/lib/api";
 
 export function useLanguageNames() {
-  const [languageNames, setLanguageNames] = useState<Record<string, string>>(
-    {},
-  );
-  const [languageNamesEn, setLanguageNamesEn] = useState<
-    Record<string, string>
-  >({});
+  const [languageNames, setLanguageNames] = useState<Record<string, string>>({});
+  const [languageNamesEn, setLanguageNamesEn] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getAllMediaWikiLanguages().then((list) => {
@@ -25,14 +21,8 @@ export function useLanguageNames() {
     });
   }, []);
 
-  const displayName = useCallback(
-    (code: string) => languageNames[code] || code,
-    [languageNames],
-  );
-  const englishName = useCallback(
-    (code: string) => languageNamesEn[code],
-    [languageNamesEn],
-  );
+  const displayName = useCallback((code: string) => languageNames[code] || code, [languageNames]);
+  const englishName = useCallback((code: string) => languageNamesEn[code], [languageNamesEn]);
 
   const getLabelText = useCallback(
     (code: string) => {
@@ -40,12 +30,12 @@ export function useLanguageNames() {
       const en = languageNamesEn[code];
       return en ? `${name} (${en} - ${code})` : `${name} (${code})`;
     },
-    [languageNames, languageNamesEn],
+    [languageNames, languageNamesEn]
   );
 
   const getPlaceholderText = useCallback(
     (code: string) => `Caption in ${getLabelText(code)}`,
-    [getLabelText],
+    [getLabelText]
   );
 
   return { getLabelText, getPlaceholderText, displayName, englishName };

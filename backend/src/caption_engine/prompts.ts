@@ -17,7 +17,7 @@ Output only valid JSON, no other text.`;
 export function translationUserPrompt(
   lang: string,
   langName: string,
-  descriptionContext?: string,
+  descriptionContext?: string
 ): string {
   let prompt = `Translate this Wikimedia Commons caption into ${langName} (${lang}). Keep it short, factual, and neutral. Output only the translation, no explanation.`;
   if (descriptionContext?.trim()) {

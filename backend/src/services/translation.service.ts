@@ -22,7 +22,7 @@ export interface TranslateParams {
 }
 
 export async function translate(
-  params: TranslateParams,
+  params: TranslateParams
 ): Promise<{ lang: string; text: string }[]> {
   const openai = getClient();
   return translateCaptionsCore(
@@ -30,6 +30,6 @@ export async function translate(
     params.sourceText,
     params.sourceLang,
     params.targetLangs,
-    params.descriptionContext,
+    params.descriptionContext
   );
 }

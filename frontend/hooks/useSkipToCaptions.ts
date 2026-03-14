@@ -9,9 +9,7 @@ export function useSkipToCaptions() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.key === "c") {
         e.preventDefault();
-        document
-          .getElementById(CAPTIONS_SECTION_ID)
-          ?.scrollIntoView({ behavior: "smooth" });
+        document.getElementById(CAPTIONS_SECTION_ID)?.scrollIntoView({ behavior: "smooth" });
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -20,9 +18,7 @@ export function useSkipToCaptions() {
 }
 
 export function scrollToCaptions() {
-  document
-    .getElementById(CAPTIONS_SECTION_ID)
-    ?.scrollIntoView({ behavior: "smooth" });
+  document.getElementById(CAPTIONS_SECTION_ID)?.scrollIntoView({ behavior: "smooth" });
 }
 
 export { CAPTIONS_SECTION_ID };

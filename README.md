@@ -32,6 +32,7 @@ Optional:
   - **gpt-5-mini** — Cost-optimized reasoning and chat; balances speed, cost, and capability.
   - **gpt-5.4** — General-purpose work, complex reasoning, broad knowledge.
   - **gpt-5.4-pro** — Tough problems needing deeper reasoning.
+- **`OPENAI_MAX_COMPLETION_TOKENS`** — Max tokens for each completion (default: `512`). Reasoning models (e.g. gpt-5-nano) use tokens for internal reasoning first; the default leaves room for visible translation/caption text. Increase if you see empty responses.
 
 Optional (for saving captions to Commons):
 
@@ -76,16 +77,29 @@ cd backend && npm install && npm run dev
 cd frontend && npm install && npm run dev
 ```
 
-### 4. Open the app
+### 4. Format and lint
+
+From the repo root (after `npm install`):
+
+```bash
+npm run format        # Prettier: format all frontend/backend and root files
+npm run format:check  # Prettier: check only (CI)
+npm run lint         # ESLint: frontend
+npm run lint:fix     # ESLint: frontend with auto-fix
+```
+
+From `frontend/` or `backend/`: `npm run format`, `npm run format:check` (and in frontend: `npm run lint`, `npm run lint:fix`).
+
+### 5. Open the app
 
 - **Frontend:** [http://localhost:3003](http://localhost:3003)
 - **Backend API:** [http://localhost:3002](http://localhost:3002) (e.g. [http://localhost:3002/api/health](http://localhost:3002/api/health))
 
 **OpenAPI spec (dev only):** When not in production, the backend serves the spec and Swagger UI at [http://localhost:3002/api-docs](http://localhost:3002/api-docs) and [http://localhost:3002/openapi.yaml](http://localhost:3002/openapi.yaml). These routes are not mounted in production.
 
-### 5. Use it
+### 6. Use it
 
-1. Paste a **Commons file URL** (e.g. `https://commons.wikimedia.org/wiki/File:Example.jpg`) and click **Load**, or use **Random image** to load a random Commons file that has captions.
+1. Paste a **Commons file URL** (e.g. `https://commons.wikimedia.org/wiki/File:Example.jpg`) and click **Load**, use **Random image** to load a random file with captions, or paste **multiple URLs** (one per line or comma-separated) in the batch box, or **upload a CSV/txt file** (first column = URL or File: title; optional header row `url`/`file`/`title`), then click **Load batch** — then click **Open** on a result to work on that file.
 2. If the file has no captions, you’ll see “No captions on this file. Add captions on Commons first.” Otherwise, existing captions are shown and a thumbnail is displayed.
 3. Choose languages (default: en, es, fr, ar, zh) with “Add or remove languages”. Star a language in the picker to add it to **Favourites** (stored in the browser); favourites always appear at the top.
 4. Rows marked **(from Commons)** were loaded from the file; you can **edit** them or use **Generate** to overwrite with a new translation. For any language without a caption, use **Generate** (that row) or **Generate all** to translate from an existing caption.
@@ -96,7 +110,7 @@ cd frontend && npm install && npm run dev
 
 ## Stack
 
-- **Backend:** Node.js, Express, TypeScript, OpenAI (text for translation), Zod. Layered structure: **routes** (per domain) → **controllers** → **services** → **caption_engine** / **commons_adapter**; **app** factory and global error middleware.
+- **Backend:** Node.js, Express, TypeScript, OpenAI (Responses API for translation with reasoning models; Chat Completions for caption-from-image), Zod. Layered structure: **routes** (per domain) → **controllers** → **services** → **caption_engine** / **commons_adapter**; **app** factory and global error middleware.
 - **Frontend:** Next.js (App Router), [shadcn/ui](https://ui.shadcn.com/) (Radix UI + cmdk Command)
 - **Run:** Docker Compose (optional: dev override for live reload)
 
@@ -106,6 +120,7 @@ Full request/response contract: **[openapi.yaml](openapi.yaml)** (OpenAPI 3.0).
 
 - `GET /api/health` — liveness
 - `GET /api/commons/file-info?url=` or `?title=` — load file info, existing labels, descriptions, and thumbnail URL
+- `POST /api/commons/batch-file-info` — body `{ identifiers: string[] }` (max 50) for batch URL list
 - `GET /api/commons/random-file` — random Commons file that has structured-data labels (for “Random image”)
 - `POST /api/translate-captions` — source captions + target_langs (+ optional `description_context`) → translated captions
 - `POST /api/validate-caption` — text → valid + warnings

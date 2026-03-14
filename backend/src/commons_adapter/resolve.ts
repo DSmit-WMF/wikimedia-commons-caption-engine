@@ -24,7 +24,10 @@ export function isCommonsWikiPageUrl(url: string): boolean {
 export async function resolveCommonsPageToImageUrl(wikiPageUrl: string): Promise<string | null> {
   const title = extractTitleFromUrl(wikiPageUrl);
   if (!title) return null;
-  const fileTitle = title.startsWith("File:") || title.startsWith("Image:") ? title.replace(/^Image:/i, "File:") : "File:" + title;
+  const fileTitle =
+    title.startsWith("File:") || title.startsWith("Image:")
+      ? title.replace(/^Image:/i, "File:")
+      : "File:" + title;
   const params = new URLSearchParams({
     action: "query",
     titles: fileTitle,
@@ -75,8 +78,7 @@ export interface FileInfo {
  * Resolve a Commons file URL or title to file info (title, MediaInfo ID, existing labels).
  */
 export async function getFileInfo(identifier: string): Promise<FileInfo | null> {
-  const title =
-    identifier.startsWith("http") ? extractTitleFromUrl(identifier) : identifier;
+  const title = identifier.startsWith("http") ? extractTitleFromUrl(identifier) : identifier;
   const fileTitle = title ? normalizeTitle(title) : normalizeTitle(identifier);
 
   const params = new URLSearchParams({
@@ -92,26 +94,28 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
 
   const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
   const pages = res.data?.query?.pages ?? {};
-  const page = Object.values(pages)[0] as {
-    pageid?: number;
-    ns?: number;
-    title?: string;
-    pageprops?: { wikibase_item?: string };
-    missing?: boolean;
-    imageinfo?: { thumburl?: string; url?: string }[];
-  } | undefined;
+  const page = Object.values(pages)[0] as
+    | {
+        pageid?: number;
+        ns?: number;
+        title?: string;
+        pageprops?: { wikibase_item?: string };
+        missing?: boolean;
+        imageinfo?: { thumburl?: string; url?: string }[];
+      }
+    | undefined;
   if (!page || page.missing) {
     return null;
   }
   // On Commons, File pages (ns=6) use MediaInfo ID = "M" + pageid when pageprops.wikibase_item is not set.
   const mediaInfoId =
-    page.pageprops?.wikibase_item ?? (page.pageid != null && page.ns === 6 ? `M${page.pageid}` : null);
+    page.pageprops?.wikibase_item ??
+    (page.pageid != null && page.ns === 6 ? `M${page.pageid}` : null);
   if (!mediaInfoId) {
     return null;
   }
   const { labels, descriptions } = await fetchLabelsAndDescriptions(mediaInfoId);
-  const imageUrl =
-    page.imageinfo?.[0]?.thumburl ?? page.imageinfo?.[0]?.url ?? null;
+  const imageUrl = page.imageinfo?.[0]?.thumburl ?? page.imageinfo?.[0]?.url ?? null;
   return {
     title: page.title ?? fileTitle,
     media_info_id: mediaInfoId,
@@ -132,7 +136,7 @@ function extractLangValues(obj: Record<string, unknown>): Record<string, string>
 }
 
 async function fetchLabelsAndDescriptions(
-  mediaInfoId: string,
+  mediaInfoId: string
 ): Promise<{ labels: Record<string, string>; descriptions: Record<string, string> }> {
   const params = new URLSearchParams({
     action: "wbgetentities",
@@ -154,7 +158,7 @@ const COMMONS_WIKI_BASE = "https://commons.wikimedia.org/wiki/";
  * Tries up to maxTries times; returns null if none found.
  */
 export async function getRandomFileWithLabels(
-  maxTries: number = 15,
+  maxTries: number = 15
 ): Promise<{ url: string; title: string } | null> {
   for (let i = 0; i < maxTries; i++) {
     const params = new URLSearchParams({

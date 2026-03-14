@@ -54,4 +54,3 @@ export async function fetchAllLanguages(): Promise<MediaWikiLanguage[]> {
   cached = { atMs: now, languages: normalized };
   return normalized;
 }
-

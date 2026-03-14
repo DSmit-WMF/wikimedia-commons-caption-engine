@@ -8,25 +8,14 @@ export interface ImagePreviewCardProps {
   commonsUrl: string;
 }
 
-export function ImagePreviewCard({
-  imageUrl,
-  fileIdentifier,
-  commonsUrl,
-}: ImagePreviewCardProps) {
+export function ImagePreviewCard({ imageUrl, fileIdentifier, commonsUrl }: ImagePreviewCardProps) {
   return (
     <Card className="w-full sm:w-64 sm:shrink-0 overflow-hidden">
       <div className="w-full max-h-56 sm:max-h-72 bg-muted flex items-center justify-center">
-        <img
-          src={imageUrl}
-          alt=""
-          className="object-contain max-h-56 sm:max-h-72 w-full p-2"
-        />
+        <img src={imageUrl} alt="" className="object-contain max-h-56 sm:max-h-72 w-full p-2" />
       </div>
       <CardContent className="p-3 space-y-2">
-        <p
-          className="text-sm font-medium truncate"
-          title={fileIdentifier ?? undefined}
-        >
+        <p className="text-sm font-medium truncate" title={fileIdentifier ?? undefined}>
           {fileIdentifier}
         </p>
         <a

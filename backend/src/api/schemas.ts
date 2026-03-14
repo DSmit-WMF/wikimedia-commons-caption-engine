@@ -38,6 +38,12 @@ export const saveCaptionsSchema = z.object({
   oauth_token: z.string().min(1).optional(),
 });
 
+export const batchFileInfoSchema = z.object({
+  /** Commons file URLs or page titles (File:...). Max 50. */
+  identifiers: z.array(z.string().trim().min(1)).min(1).max(50),
+});
+
 export type TranslateCaptionsBody = z.infer<typeof translateCaptionsSchema>;
 export type ValidateCaptionBody = z.infer<typeof validateCaptionSchema>;
 export type SaveCaptionsBody = z.infer<typeof saveCaptionsSchema>;
+export type BatchFileInfoBody = z.infer<typeof batchFileInfoSchema>;
