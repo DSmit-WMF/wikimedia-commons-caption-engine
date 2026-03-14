@@ -5,7 +5,7 @@ import { config } from "../config.js";
 
 /**
  * Translate a caption into target languages using OpenAI.
- * Uses the Responses API with reasoning.effort "low" so reasoning models (e.g. gpt-5-nano)
+ * Uses the Responses API with reasoning.effort "low" so reasoning models (e.g. gpt-5-mini)
  * leave room for visible output text.
  * Optional descriptionContext (e.g. Commons Summary description) improves translation accuracy.
  */

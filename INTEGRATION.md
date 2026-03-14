@@ -8,7 +8,7 @@ This document describes how well the app is abstracted for reuse (e.g. in Upload
 
 ### What is already modular
 
-- **Caption engine** (`backend/src/caption_engine/`): `translateCaptions()` and `validateCaption()` are pure logic. They take inputs (OpenAI client, text, languages, optional context) and return results. They do **not** depend on Express or Commons. Translation uses the OpenAI **Responses API** with `reasoning: { effort: "low" }` so reasoning models (e.g. gpt-5-nano) return visible output; caption-from-image uses Chat Completions. Another Node.js app can `import` and use them directly.
+- **Caption engine** (`backend/src/caption_engine/`): `translateCaptions()` and `validateCaption()` are pure logic. They take inputs (OpenAI client, text, languages, optional context) and return results. They do **not** depend on Express or Commons. Translation uses the OpenAI **Responses API** with `reasoning: { effort: "low" }` so reasoning models (e.g. gpt-5-mini) return visible output; caption-from-image uses Chat Completions. Another Node.js app can `import` and use them directly.
 
 - **Commons adapter** (`backend/src/commons_adapter/`): `getFileInfo(identifier)`, `resolveFileToMediaInfoId(identifier)`, and `saveLabels(mediaInfoId, captions, oauthToken)` are the main entry points. They depend only on axios, config (User-Agent), and the Commons API. The **token is passed as an argument** to `saveLabels`, so the adapter does not assume a single global token. This is the layer you would reuse or reimplement when plugging into MediaWiki/Commons (e.g. PHP calling the same Commons APIs).
 

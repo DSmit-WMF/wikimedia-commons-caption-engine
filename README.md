@@ -27,12 +27,12 @@ OPENAI_API_KEY=sk-your-key-here
 
 Optional:
 
-- **`OPENAI_MODEL`** — Model for translation and caption generation (default: `gpt-5-nano`). Guide:
-  - **gpt-5-nano** — High-throughput, straightforward instruction-following (default; good for translation).
-  - **gpt-5-mini** — Cost-optimized reasoning and chat; balances speed, cost, and capability.
+- **`OPENAI_MODEL`** — Model for translation and caption generation (default: `gpt-5-mini`). If set to empty in `.env`, the default is used. Guide:
+  - **gpt-5-mini** — Cost-optimized reasoning and chat; balances speed, cost, and capability (default).
+  - **gpt-5-nano** — High-throughput, straightforward instruction-following; good for translation.
   - **gpt-5.4** — General-purpose work, complex reasoning, broad knowledge.
   - **gpt-5.4-pro** — Tough problems needing deeper reasoning.
-- **`OPENAI_MAX_COMPLETION_TOKENS`** — Max tokens for each completion (default: `512`). Reasoning models (e.g. gpt-5-nano) use tokens for internal reasoning first; the default leaves room for visible translation/caption text. Increase if you see empty responses.
+- **`OPENAI_MAX_COMPLETION_TOKENS`** — Max tokens for each completion (default: `512`). Reasoning models (e.g. gpt-5-mini) use tokens for internal reasoning first; the default leaves room for visible translation/caption text. Increase if you see empty responses.
 
 Optional (for saving captions to Commons):
 
@@ -111,7 +111,7 @@ From `frontend/` or `backend/`: `npm run format`, `npm run format:check` (and in
 ## Stack
 
 - **Backend:** Node.js, Express, TypeScript, OpenAI (Responses API for translation with reasoning models; Chat Completions for caption-from-image), Zod. Layered structure: **routes** (per domain) → **controllers** → **services** → **caption_engine** / **commons_adapter**; **app** factory and global error middleware.
-- **Frontend:** Next.js (App Router), [shadcn/ui](https://ui.shadcn.com/) (Radix UI + cmdk Command)
+- **Frontend:** Next.js (App Router), React Query (TanStack Query) for API calls and request cancellation, [shadcn/ui](https://ui.shadcn.com/) (Radix UI + cmdk Command)
 - **Run:** Docker Compose (optional: dev override for live reload)
 
 ## API

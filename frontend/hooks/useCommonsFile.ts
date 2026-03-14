@@ -103,6 +103,8 @@ export function useCommonsFile() {
   const [loadRequestUrl, setLoadRequestUrl] = useState<string | null>(null);
   /** When set, useQuery fetches batch; changing this aborts the previous request. */
   const [batchRequestIds, setBatchRequestIds] = useState<string[] | null>(null);
+  /** Increments on each Load batch click so the same URL list can be refetched (React Query keys are deep-equal). */
+  const [batchLoadKey, setBatchLoadKey] = useState(0);
 
   const randomFileMutation = useMutation({
     mutationFn: getRandomCommonsFile,
@@ -201,12 +203,12 @@ export function useCommonsFile() {
   }, []);
 
   const batchQuery = useQuery({
-    queryKey: ["batch-files", batchRequestIds],
+    queryKey: ["batch-files", batchRequestIds, batchLoadKey],
     queryFn: async ({ signal }) => {
       if (!batchRequestIds?.length) return [];
       return getBatchFileInfo(batchRequestIds, { signal });
     },
-    enabled: !!batchRequestIds?.length,
+    enabled: !!batchRequestIds?.length && batchLoadKey > 0,
   });
 
   useEffect(() => {
@@ -242,6 +244,7 @@ export function useCommonsFile() {
     setLoadError(null);
     setCurrentBatchIndex(null);
     setBatchRequestIds(identifiers);
+    setBatchLoadKey((k) => k + 1);
   }, [batchUrlList]);
 
   const openFromBatch = useCallback(
