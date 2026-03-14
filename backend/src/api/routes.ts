@@ -1,22 +1,16 @@
 import { Router, Request, Response } from "express";
-import multer from "multer";
 import OpenAI from "openai";
+import { validateCaption, translateCaptions } from "../caption_engine/index.js";
 import {
-  generateCaption,
-  validateCaption,
-  translateCaptions,
-} from "../caption_engine/index.js";
-import {
-  captionPreviewJsonSchema,
   translateCaptionsSchema,
   validateCaptionSchema,
   saveCaptionsSchema,
 } from "./schemas.js";
 import { getSuggestedLanguages } from "./languages.js";
 import { config } from "../config.js";
+import { fetchAllLanguages } from "./mediawiki_languages.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const openai = config.openaiApiKey ? new OpenAI({ apiKey: config.openaiApiKey }) : null;
 
 router.get("/health", (_req: Request, res: Response) => {
@@ -29,42 +23,13 @@ router.get("/languages", (req: Request, res: Response) => {
   res.json({ languages: langs });
 });
 
-router.post("/caption-preview", upload.single("file"), async (req: Request, res: Response) => {
+router.get("/languages/all", async (_req: Request, res: Response) => {
   try {
-    if (!openai) {
-      res.status(503).json({ error: "OpenAI API key not configured" });
-      return;
-    }
-
-    let imageBase64: string;
-    let mimeType = "image/jpeg";
-
-    if (req.file) {
-      imageBase64 = req.file.buffer.toString("base64");
-      mimeType = req.file.mimetype || "image/jpeg";
-    } else {
-      const body = captionPreviewJsonSchema.safeParse(req.body);
-      if (!body.success || !body.data.image_url) {
-        res.status(400).json({
-          error: "Provide either multipart file or JSON with image_url",
-          details: body.error?.flatten(),
-        });
-        return;
-      }
-      const url = body.data.image_url;
-      const axios = (await import("axios")).default;
-      const imgRes = await axios.get(url, { responseType: "arraybuffer" });
-      imageBase64 = Buffer.from(imgRes.data).toString("base64");
-      mimeType = (imgRes.headers["content-type"] as string) || "image/jpeg";
-    }
-
-    const result = await generateCaption(openai, imageBase64, mimeType);
-    res.json(result);
+    const languages = await fetchAllLanguages();
+    res.json({ languages });
   } catch (err: unknown) {
-    console.error("caption-preview error", err);
-    res.status(500).json({
-      error: err instanceof Error ? err.message : "Caption generation failed",
-    });
+    console.error("languages/all error", err);
+    res.status(502).json({ error: "Failed to fetch MediaWiki languages" });
   }
 });
 

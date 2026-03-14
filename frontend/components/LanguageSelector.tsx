@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -14,28 +14,13 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogClose,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { getSuggestedLanguages } from "@/lib/api";
+import { getAllMediaWikiLanguages, getSuggestedLanguages, type MediaWikiLanguage } from "@/lib/api";
 import { useEffect } from "react";
 import { Languages, X } from "lucide-react";
-
-const COMMON_LANGUAGES: { code: string; name: string }[] = [
-  { code: "en", name: "English" },
-  { code: "es", name: "Spanish" },
-  { code: "fr", name: "French" },
-  { code: "de", name: "German" },
-  { code: "nl", name: "Dutch" },
-  { code: "pt", name: "Portuguese" },
-  { code: "pt-br", name: "Brazilian Portuguese" },
-  { code: "it", name: "Italian" },
-  { code: "pl", name: "Polish" },
-  { code: "ru", name: "Russian" },
-  { code: "ja", name: "Japanese" },
-  { code: "zh", name: "Chinese" },
-  { code: "ar", name: "Arabic" },
-];
 
 interface LanguageSelectorProps {
   selectedLanguages: string[];
@@ -50,10 +35,15 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [open, setOpen] = useState(false);
   const [suggested, setSuggested] = useState<string[]>([]);
+  const [allLanguages, setAllLanguages] = useState<MediaWikiLanguage[]>([]);
 
   useEffect(() => {
     getSuggestedLanguages(preferredLang).then(setSuggested).catch(() => setSuggested(["en", "es", "fr"]));
   }, [preferredLang]);
+
+  useEffect(() => {
+    getAllMediaWikiLanguages().then(setAllLanguages).catch(() => setAllLanguages([]));
+  }, []);
 
   function addLanguage(code: string) {
     if (selectedLanguages.includes(code)) return;
@@ -64,8 +54,19 @@ export function LanguageSelector({
     onLanguagesChange(selectedLanguages.filter((l) => l !== code));
   }
 
-  const languageName = (code: string) =>
-    COMMON_LANGUAGES.find((l) => l.code === code)?.name ?? code;
+  const codeToName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of allLanguages) m.set(l.code, l.name);
+    return m;
+  }, [allLanguages]);
+
+  const languageName = (code: string) => codeToName.get(code) ?? code;
+
+  const allLanguageOptions = allLanguages.length > 0 ? allLanguages : [
+    { code: "en", name: "English" },
+    { code: "es", name: "Spanish" },
+    { code: "fr", name: "French" },
+  ];
 
   return (
     <div className="space-y-3">
@@ -119,8 +120,9 @@ export function LanguageSelector({
                 ))}
               </CommandGroup>
               <CommandGroup heading="All">
-                {COMMON_LANGUAGES.filter((l) => !suggested.includes(l.code)).map(
-                  ({ code, name }) => (
+                {allLanguageOptions
+                  .filter((l) => !suggested.includes(l.code))
+                  .map(({ code, name }) => (
                     <CommandItem
                       key={code}
                       value={`${code} ${name}`}
@@ -131,11 +133,23 @@ export function LanguageSelector({
                         <span className="ml-2 text-muted-foreground">added</span>
                       )}
                     </CommandItem>
-                  )
-                )}
+                  ))}
               </CommandGroup>
             </CommandList>
           </Command>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Close
+              </Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button type="button" onClick={() => setOpen(false)}>
+                Done
+              </Button>
+            </DialogClose>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

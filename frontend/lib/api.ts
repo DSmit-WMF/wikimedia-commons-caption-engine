@@ -1,47 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-export interface CaptionPreviewResult {
-  caption: string;
-  warnings: string[];
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 export interface CaptionItem {
   lang: string;
   text: string;
-}
-
-export async function captionPreview(
-  file?: File,
-  imageUrl?: string,
-  sourceLang: string = "en"
-): Promise<CaptionPreviewResult> {
-  if (file) {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("source_lang", sourceLang);
-    const res = await fetch(`${API_URL}/api/caption-preview`, {
-      method: "POST",
-      body: form,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error ?? "Caption preview failed");
-    }
-    return res.json();
-  }
-  if (imageUrl) {
-    const res = await fetch(`${API_URL}/api/caption-preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_url: imageUrl, source_lang: sourceLang }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error ?? "Caption preview failed");
-    }
-    return res.json();
-  }
-  throw new Error("Provide file or image_url");
 }
 
 export async function translateCaptions(
@@ -80,17 +41,34 @@ export async function getSuggestedLanguages(preferredLang: string): Promise<stri
   return data.languages ?? [preferredLang, "en", "es", "fr"];
 }
 
+export interface MediaWikiLanguage {
+  code: string;
+  bcp47?: string;
+  name: string;
+}
+
+export async function getAllMediaWikiLanguages(): Promise<MediaWikiLanguage[]> {
+  const res = await fetch(`${API_URL}/api/languages/all`);
+  if (!res.ok) {
+    // Minimal fallback (still usable UI)
+    return [
+      { code: "en", name: "English" },
+      { code: "es", name: "Spanish" },
+      { code: "fr", name: "French" },
+    ];
+  }
+  const data = await res.json();
+  return (data.languages ?? []) as MediaWikiLanguage[];
+}
+
+/** Saves captions to Commons. The server uses COMMONS_OAUTH_TOKEN from env; no token is sent from the client. */
 export async function saveCaptionsToCommons(
   fileIdentifier: string,
-  captions: CaptionItem[],
-  oauthToken: string
+  captions: CaptionItem[]
 ): Promise<{ success: boolean; media_info_id?: string }> {
   const res = await fetch(`${API_URL}/api/commons/save-captions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${oauthToken}`,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_identifier: fileIdentifier, captions }),
   });
   const data = await res.json();

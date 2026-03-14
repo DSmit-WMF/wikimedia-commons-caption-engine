@@ -4,9 +4,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3002:3002"
     environment:
-      - PORT=3001
+      - PORT=3002
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - COMMONS_OAUTH_TOKEN=${COMMONS_OAUTH_TOKEN:-}
     env_file:
@@ -17,8 +17,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3003:3003"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - PORT=3003
+      - NEXT_PUBLIC_API_URL=http://localhost:3002
     depends_on:
       - backend

@@ -1,6 +1,44 @@
 import axios from "axios";
+import { WIKIMEDIA_USER_AGENT } from "../config.js";
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
+const commonsHeaders = { "User-Agent": WIKIMEDIA_USER_AGENT };
+
+/**
+ * Check if URL is a Commons wiki page (e.g. https://commons.wikimedia.org/wiki/File:Example.jpg).
+ * Such URLs return HTML; we need to resolve to the direct image URL for fetching bytes.
+ */
+export function isCommonsWikiPageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.hostname.includes("commons.wikimedia.org") && u.pathname.startsWith("/wiki/");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve a Commons wiki page URL to the direct image URL (for fetching image bytes).
+ * Uses Commons API action=query&prop=imageinfo&iiprop=url.
+ */
+export async function resolveCommonsPageToImageUrl(wikiPageUrl: string): Promise<string | null> {
+  const title = extractTitleFromUrl(wikiPageUrl);
+  if (!title) return null;
+  const fileTitle = title.startsWith("File:") || title.startsWith("Image:") ? title.replace(/^Image:/i, "File:") : "File:" + title;
+  const params = new URLSearchParams({
+    action: "query",
+    titles: fileTitle,
+    prop: "imageinfo",
+    iiprop: "url",
+    format: "json",
+    origin: "*",
+  });
+  const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
+  const pages = res.data?.query?.pages ?? {};
+  const page = Object.values(pages)[0] as { imageinfo?: { url?: string }[] } | undefined;
+  const url = page?.imageinfo?.[0]?.url;
+  return url ?? null;
+}
 
 function extractTitleFromUrl(url: string): string | null {
   try {
@@ -46,14 +84,24 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
     origin: "*",
   });
 
-  const res = await axios.get(COMMONS_API, { params });
+  const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
   const pages = res.data?.query?.pages ?? {};
-  const page = Object.values(pages)[0] as { pageprops?: { wikibase_item?: string }; title?: string } | undefined;
-  if (!page || page.pageprops?.wikibase_item === undefined) {
+  const page = Object.values(pages)[0] as {
+    pageid?: number;
+    ns?: number;
+    title?: string;
+    pageprops?: { wikibase_item?: string };
+    missing?: boolean;
+  } | undefined;
+  if (!page || page.missing) {
     return null;
   }
-
-  const mediaInfoId = page.pageprops.wikibase_item; // M123 format on Commons
+  // On Commons, File pages (ns=6) use MediaInfo ID = "M" + pageid when pageprops.wikibase_item is not set.
+  const mediaInfoId =
+    page.pageprops?.wikibase_item ?? (page.pageid != null && page.ns === 6 ? `M${page.pageid}` : null);
+  if (!mediaInfoId) {
+    return null;
+  }
   const labels = await fetchLabels(mediaInfoId);
   return {
     title: page.title ?? fileTitle,
@@ -69,7 +117,7 @@ async function fetchLabels(mediaInfoId: string): Promise<Record<string, string>>
     format: "json",
     origin: "*",
   });
-  const res = await axios.get(COMMONS_API, { params });
+  const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
   const entities = res.data?.entities?.[mediaInfoId];
   const labelObj = entities?.labels ?? {};
   const out: Record<string, string> = {};

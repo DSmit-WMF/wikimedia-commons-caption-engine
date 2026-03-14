@@ -9,7 +9,7 @@ const STATIC_FALLBACKS: Record<string, string[]> = {
   "zh-hant": ["zh"],
 };
 
-const ALWAYS_INCLUDE = ["en", "es", "fr"];
+const ALWAYS_INCLUDE = ["en", "es", "fr", "ar", "zh"];
 
 export function getSuggestedLanguages(preferredLang: string, maxLanguages: number = 6): string[] {
   const seen = new Set<string>();
