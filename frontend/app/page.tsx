@@ -4,7 +4,13 @@ import { useState, useCallback } from "react";
 import { CommonsUrlInput } from "@/components/ImageUpload";
 import { CaptionEditor } from "@/components/CaptionEditor";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCommonsFileInfo, type CaptionItem } from "@/lib/api";
 import { Loader2 } from "lucide-react";
@@ -15,12 +21,17 @@ export default function Home() {
   const [commonsUrl, setCommonsUrl] = useState("");
   const [captions, setCaptions] = useState<CaptionItem[]>([]);
   const [languages, setLanguages] = useState<string[]>(DEFAULT_LANGUAGES);
-  const [languagesFromCommons, setLanguagesFromCommons] = useState<Set<string>>(new Set());
+  const [languagesFromCommons, setLanguagesFromCommons] = useState<Set<string>>(
+    new Set(),
+  );
   const [fileIdentifier, setFileIdentifier] = useState<string | null>(null);
   const [descriptionContext, setDescriptionContext] = useState<string>("");
+  const [loadKey, setLoadKey] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadLoading, setLoadLoading] = useState(false);
-  const [noCaptionsMessage, setNoCaptionsMessage] = useState<string | null>(null);
+  const [noCaptionsMessage, setNoCaptionsMessage] = useState<string | null>(
+    null,
+  );
 
   const handleLoad = useCallback(async () => {
     const url = commonsUrl.trim();
@@ -44,7 +55,9 @@ export default function Home() {
       const labels = info.labels ?? {};
       const labelEntries = Object.entries(labels);
       if (labelEntries.length === 0) {
-        setNoCaptionsMessage("No captions on this file. Add captions on Commons first.");
+        setNoCaptionsMessage(
+          "No captions on this file. Add captions on Commons first.",
+        );
         setCaptions([]);
         setFileIdentifier(null);
         setDescriptionContext("");
@@ -52,14 +65,20 @@ export default function Home() {
         return;
       }
       setNoCaptionsMessage(null);
-      const initial: CaptionItem[] = labelEntries.map(([lang, text]) => ({ lang, text }));
+      const initial: CaptionItem[] = labelEntries.map(([lang, text]) => ({
+        lang,
+        text,
+      }));
       setCaptions(initial);
       setLanguagesFromCommons(new Set(initial.map((c) => c.lang)));
       setFileIdentifier(info.title ?? url);
       const descs = info.descriptions ?? {};
       setDescriptionContext(descs.en ?? descs[Object.keys(descs)[0]] ?? "");
+      setLoadKey((k) => k + 1);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load file info.");
+      setLoadError(
+        e instanceof Error ? e.message : "Failed to load file info.",
+      );
       setCaptions([]);
       setFileIdentifier(null);
       setDescriptionContext("");
@@ -77,14 +96,17 @@ export default function Home() {
       <header className="text-center space-y-2">
         <h1 className="text-2xl font-bold">Commons Caption Suggestion Tool</h1>
         <p className="text-muted-foreground text-sm">
-          Paste a Commons file URL to load existing captions, translate them into more languages, and save back to Commons.
+          Paste a Commons file URL to load existing captions, translate them
+          into more languages, and save back to Commons.
         </p>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle>Commons file</CardTitle>
-          <CardDescription>Enter a Wikimedia Commons file page URL</CardDescription>
+          <CardDescription>
+            Enter a Wikimedia Commons file page URL
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <CommonsUrlInput
@@ -120,7 +142,10 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Languages</CardTitle>
-              <CardDescription>Choose languages for caption suggestions (default: en, es, fr, ar, zh)</CardDescription>
+              <CardDescription>
+                Choose languages for caption suggestions (default: en, es, fr,
+                ar, zh)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <LanguageSelector
@@ -134,10 +159,14 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Captions</CardTitle>
-              <CardDescription>Edit captions, generate translations for new languages, then send to Commons</CardDescription>
+              <CardDescription>
+                Edit captions, generate translations for new languages, then
+                send to Commons
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <CaptionEditor
+                key={loadKey}
                 captions={captions}
                 onCaptionsChange={setCaptions}
                 languages={languages}
