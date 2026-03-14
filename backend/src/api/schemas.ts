@@ -17,6 +17,8 @@ export const translateCaptionsSchema = z.object({
     })
   ),
   target_langs: z.array(z.string()),
+  /** Optional longer description (e.g. Commons Summary) to help the AI translate the caption accurately. */
+  description_context: z.string().optional(),
 });
 
 export const validateCaptionSchema = z.object({

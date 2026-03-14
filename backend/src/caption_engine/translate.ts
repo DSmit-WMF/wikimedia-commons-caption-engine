@@ -6,12 +6,14 @@ import {
 
 /**
  * Translate a caption into target languages using OpenAI.
+ * Optional descriptionContext (e.g. Commons Summary description) improves translation accuracy.
  */
 export async function translateCaptions(
   client: OpenAI,
   sourceCaption: string,
   sourceLang: string,
-  targetLangs: string[]
+  targetLangs: string[],
+  descriptionContext?: string,
 ): Promise<{ lang: string; text: string }[]> {
   const results: { lang: string; text: string }[] = [];
   const langName = (lang: string) => LANGUAGE_NAMES[lang] ?? lang;
@@ -27,7 +29,7 @@ export async function translateCaptions(
       messages: [
         {
           role: "user",
-          content: `${translationUserPrompt(lang, langName(lang))}\n\nCaption: ${sourceCaption}`,
+          content: `${translationUserPrompt(lang, langName(lang), descriptionContext)}\n\nCaption: ${sourceCaption}`,
         },
       ],
     });

@@ -1,4 +1,4 @@
-const MAX_LENGTH = 100;
+const MAX_LENGTH = 250;
 const OPINION_WORDS = [
   "beautiful",
   "amazing",
@@ -12,7 +12,15 @@ const OPINION_WORDS = [
   "perfect",
   "incredible",
 ];
-const SPECULATION_MARKERS = ["probably", "might be", "maybe", "perhaps", "possibly", "likely", "seems"];
+const SPECULATION_MARKERS = [
+  "probably",
+  "might be",
+  "maybe",
+  "perhaps",
+  "possibly",
+  "likely",
+  "seems",
+];
 
 export interface ValidationResult {
   valid: boolean;
@@ -44,7 +52,11 @@ export function validateCaption(text: string): ValidationResult {
     }
   }
 
-  if (lower.includes("copyright") || lower.includes("license") || lower.includes("©")) {
+  if (
+    lower.includes("copyright") ||
+    lower.includes("license") ||
+    lower.includes("©")
+  ) {
     warnings.push("Do not include copyright or licensing text in the caption.");
   }
 

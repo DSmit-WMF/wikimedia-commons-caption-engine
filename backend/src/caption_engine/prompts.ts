@@ -14,8 +14,16 @@ Rules: short (under 100 chars), factual, neutral, only what is visible. No opini
 Return a JSON object with: "valid" (boolean) and "warnings" (string array of violations, empty if none).
 Output only valid JSON, no other text.`;
 
-export function translationUserPrompt(lang: string, langName: string): string {
-  return `Translate this Wikimedia Commons caption into ${langName} (${lang}). Keep it short, factual, and neutral. Output only the translation, no explanation.`;
+export function translationUserPrompt(
+  lang: string,
+  langName: string,
+  descriptionContext?: string,
+): string {
+  let prompt = `Translate this Wikimedia Commons caption into ${langName} (${lang}). Keep it short, factual, and neutral. Output only the translation, no explanation.`;
+  if (descriptionContext?.trim()) {
+    prompt += `\n\nContext (longer description of the file — use this to choose accurate wording):\n${descriptionContext.trim()}`;
+  }
+  return prompt;
 }
 
 export const LANGUAGE_NAMES: Record<string, string> = {

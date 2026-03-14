@@ -44,7 +44,7 @@ router.post("/translate-captions", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid body", details: body.error.flatten() });
       return;
     }
-    const { captions, target_langs } = body.data;
+    const { captions, target_langs, description_context } = body.data;
     const source = captions[0];
     if (!source) {
       res.status(400).json({ error: "At least one caption required" });
@@ -54,7 +54,8 @@ router.post("/translate-captions", async (req: Request, res: Response) => {
       openai,
       source.text,
       source.lang,
-      target_langs
+      target_langs,
+      description_context,
     );
     res.json({ captions: results });
   } catch (err: unknown) {

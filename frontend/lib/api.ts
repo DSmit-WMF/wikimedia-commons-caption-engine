@@ -7,12 +7,18 @@ export interface CaptionItem {
 
 export async function translateCaptions(
   captions: CaptionItem[],
-  targetLangs: string[]
+  targetLangs: string[],
+  descriptionContext?: string,
 ): Promise<CaptionItem[]> {
+  const body: { captions: CaptionItem[]; target_langs: string[]; description_context?: string } = {
+    captions,
+    target_langs: targetLangs,
+  };
+  if (descriptionContext?.trim()) body.description_context = descriptionContext.trim();
   const res = await fetch(`${API_URL}/api/translate-captions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ captions, target_langs: targetLangs }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -80,6 +86,7 @@ export async function getCommonsFileInfo(urlOrTitle: string): Promise<{
   title: string;
   media_info_id: string;
   labels: Record<string, string>;
+  descriptions?: Record<string, string>;
 } | null> {
   const isUrl = urlOrTitle.startsWith("http");
   const params = new URLSearchParams(isUrl ? { url: urlOrTitle } : { title: urlOrTitle });

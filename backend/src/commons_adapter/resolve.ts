@@ -65,6 +65,8 @@ export interface FileInfo {
   title: string;
   media_info_id: string;
   labels: Record<string, string>;
+  /** Longer descriptions (e.g. Summary) per language — helps translation context. */
+  descriptions: Record<string, string>;
 }
 
 /**
@@ -102,15 +104,28 @@ export async function getFileInfo(identifier: string): Promise<FileInfo | null> 
   if (!mediaInfoId) {
     return null;
   }
-  const labels = await fetchLabels(mediaInfoId);
+  const { labels, descriptions } = await fetchLabelsAndDescriptions(mediaInfoId);
   return {
     title: page.title ?? fileTitle,
     media_info_id: mediaInfoId,
     labels: labels ?? {},
+    descriptions: descriptions ?? {},
   };
 }
 
-async function fetchLabels(mediaInfoId: string): Promise<Record<string, string>> {
+function extractLangValues(obj: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [lang, val] of Object.entries(obj)) {
+    if (val && typeof val === "object" && "value" in val) {
+      out[lang] = (val as { value: string }).value;
+    }
+  }
+  return out;
+}
+
+async function fetchLabelsAndDescriptions(
+  mediaInfoId: string,
+): Promise<{ labels: Record<string, string>; descriptions: Record<string, string> }> {
   const params = new URLSearchParams({
     action: "wbgetentities",
     ids: mediaInfoId,
@@ -118,13 +133,8 @@ async function fetchLabels(mediaInfoId: string): Promise<Record<string, string>>
     origin: "*",
   });
   const res = await axios.get(COMMONS_API, { params, headers: commonsHeaders });
-  const entities = res.data?.entities?.[mediaInfoId];
-  const labelObj = entities?.labels ?? {};
-  const out: Record<string, string> = {};
-  for (const [lang, obj] of Object.entries(labelObj)) {
-    if (obj && typeof obj === "object" && "value" in obj) {
-      out[lang] = (obj as { value: string }).value;
-    }
-  }
-  return out;
+  const entity = res.data?.entities?.[mediaInfoId];
+  const labels = entity?.labels ? extractLangValues(entity.labels) : {};
+  const descriptions = entity?.descriptions ? extractLangValues(entity.descriptions) : {};
+  return { labels, descriptions };
 }

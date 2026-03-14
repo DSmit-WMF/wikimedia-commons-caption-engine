@@ -17,6 +17,7 @@ export default function Home() {
   const [languages, setLanguages] = useState<string[]>(DEFAULT_LANGUAGES);
   const [languagesFromCommons, setLanguagesFromCommons] = useState<Set<string>>(new Set());
   const [fileIdentifier, setFileIdentifier] = useState<string | null>(null);
+  const [descriptionContext, setDescriptionContext] = useState<string>("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadLoading, setLoadLoading] = useState(false);
   const [noCaptionsMessage, setNoCaptionsMessage] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export default function Home() {
         setLoadError("File not found. Check the URL.");
         setCaptions([]);
         setFileIdentifier(null);
+        setDescriptionContext("");
         setLanguagesFromCommons(new Set());
         return;
       }
@@ -45,6 +47,7 @@ export default function Home() {
         setNoCaptionsMessage("No captions on this file. Add captions on Commons first.");
         setCaptions([]);
         setFileIdentifier(null);
+        setDescriptionContext("");
         setLanguagesFromCommons(new Set());
         return;
       }
@@ -53,10 +56,13 @@ export default function Home() {
       setCaptions(initial);
       setLanguagesFromCommons(new Set(initial.map((c) => c.lang)));
       setFileIdentifier(info.title ?? url);
+      const descs = info.descriptions ?? {};
+      setDescriptionContext(descs.en ?? descs[Object.keys(descs)[0]] ?? "");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load file info.");
       setCaptions([]);
       setFileIdentifier(null);
+      setDescriptionContext("");
       setLanguagesFromCommons(new Set());
     } finally {
       setLoadLoading(false);
@@ -137,6 +143,7 @@ export default function Home() {
                 languages={languages}
                 languagesFromCommons={languagesFromCommons}
                 fileIdentifier={fileIdentifier}
+                descriptionContext={descriptionContext || undefined}
               />
             </CardContent>
           </Card>

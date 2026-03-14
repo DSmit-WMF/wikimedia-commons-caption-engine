@@ -10,7 +10,7 @@ import {
   saveCaptionsToCommons,
   type CaptionItem,
 } from "@/lib/api";
-import { Loader2, Copy, Download, Send, Sparkles } from "lucide-react";
+import { Loader2, Copy, Download, Send, Sparkles, Check } from "lucide-react";
 
 interface CaptionEditorProps {
   captions: CaptionItem[];
@@ -18,6 +18,8 @@ interface CaptionEditorProps {
   languages: string[];
   languagesFromCommons: Set<string>;
   fileIdentifier: string;
+  /** Optional longer description (e.g. Commons Summary) to improve translation accuracy. */
+  descriptionContext?: string;
 }
 
 function getSourceCaption(captions: CaptionItem[]): CaptionItem | undefined {
@@ -31,6 +33,7 @@ export function CaptionEditor({
   languages,
   languagesFromCommons,
   fileIdentifier,
+  descriptionContext,
 }: CaptionEditorProps) {
   const [generatingLang, setGeneratingLang] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
@@ -38,18 +41,23 @@ export function CaptionEditor({
   const [sendingAll, setSendingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [sentLangs, setSentLangs] = useState<Set<string>>(new Set());
+  const [dirtyLangs, setDirtyLangs] = useState<Set<string>>(new Set());
 
   const displayLangs = [
     ...new Set([...languages, ...captions.map((c) => c.lang)]),
   ];
 
-  const canGenerate = (lang: string): boolean => {
-    if (languagesFromCommons.has(lang)) return false;
-    const cap = captions.find((c) => c.lang === lang);
-    return !cap?.text?.trim();
-  };
+  /** Show Generate for any row not loaded from Commons (so user can (re)generate translation). */
+  const showGenerateForLang = (lang: string): boolean =>
+    !languagesFromCommons.has(lang);
 
-  const emptyNonCommonsLangs = displayLangs.filter((lang) => canGenerate(lang));
+  /** Languages that have no text and are not from Commons — targets for "Generate all". */
+  const emptyNonCommonsLangs = displayLangs.filter(
+    (lang) =>
+      !languagesFromCommons.has(lang) &&
+      !captions.find((c) => c.lang === lang)?.text?.trim(),
+  );
 
   const generateOne = useCallback(
     async (lang: string) => {
@@ -61,11 +69,16 @@ export function CaptionEditor({
       setError(null);
       setGeneratingLang(lang);
       try {
-        const translated = await translateCaptions([source], [lang]);
+        const translated = await translateCaptions(
+          [source],
+          [lang],
+          descriptionContext,
+        );
         const next = translated.filter((t) => t.lang === lang);
         if (next.length === 0) return;
         const existing = captions.filter((c) => c.lang !== lang);
         onCaptionsChange([...existing, ...next]);
+        setDirtyLangs((prev) => new Set(prev).add(lang));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Translation failed");
       } finally {
@@ -88,12 +101,18 @@ export function CaptionEditor({
       const translated = await translateCaptions(
         [source],
         emptyNonCommonsLangs,
+        descriptionContext,
       );
       const byLang = new Map(translated.map((t) => [t.lang, t]));
       const existing = captions.filter(
         (c) => !emptyNonCommonsLangs.includes(c.lang),
       );
       onCaptionsChange([...existing, ...Array.from(byLang.values())]);
+      setDirtyLangs((prev) => {
+        const next = new Set(prev);
+        emptyNonCommonsLangs.forEach((l) => next.add(l));
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
@@ -113,6 +132,14 @@ export function CaptionEditor({
         return nextErr;
       });
     }
+    if (sentLangs.has(lang)) {
+      setSentLangs((prev) => {
+        const nextSet = new Set(prev);
+        nextSet.delete(lang);
+        return nextSet;
+      });
+    }
+    setDirtyLangs((prev) => new Set(prev).add(lang));
   }
 
   async function sendOne(lang: string) {
@@ -134,6 +161,12 @@ export function CaptionEditor({
         const nextErr = { ...prev };
         delete nextErr[lang];
         return nextErr;
+      });
+      setSentLangs((prev) => new Set(prev).add(lang));
+      setDirtyLangs((prev) => {
+        const next = new Set(prev);
+        next.delete(lang);
+        return next;
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save to Commons failed");
@@ -162,6 +195,16 @@ export function CaptionEditor({
       }
       await saveCaptionsToCommons(fileIdentifier, toSend);
       setFieldErrors({});
+      setSentLangs((prev) => {
+        const next = new Set(prev);
+        toSend.forEach((c) => next.add(c.lang));
+        return next;
+      });
+      setDirtyLangs((prev) => {
+        const next = new Set(prev);
+        toSend.forEach((c) => next.delete(c.lang));
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save to Commons failed");
     } finally {
@@ -192,7 +235,11 @@ export function CaptionEditor({
           <Button
             variant="default"
             onClick={generateAll}
-            disabled={generatingAll || !getSourceCaption(captions)}
+            disabled={
+              generatingAll ||
+              emptyNonCommonsLangs.length === 0 ||
+              !getSourceCaption(captions)
+            }
           >
             {generatingAll ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -212,22 +259,6 @@ export function CaptionEditor({
               <Download className="mr-2 h-4 w-4" />
               Export JSON
             </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={sendAll}
-              disabled={
-                sendingAll ||
-                captions.filter((c) => c.text?.trim()).length === 0
-              }
-            >
-              {sendingAll ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              Send all
-            </Button>
           </>
         )}
       </div>
@@ -241,14 +272,25 @@ export function CaptionEditor({
           const cap = captions.find((c) => c.lang === lang);
           const value = cap?.text ?? "";
           const fromCommons = languagesFromCommons.has(lang);
-          const showGenerate = canGenerate(lang);
+          const showGenerate = showGenerateForLang(lang);
+          const isSent = sentLangs.has(lang);
+          const isDirty = dirtyLangs.has(lang);
           return (
-            <div key={lang} className="space-y-2">
+            <div
+              key={lang}
+              className={`space-y-2 ${isSent ? "rounded-md border border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20 p-3" : ""}`}
+            >
               <Label htmlFor={`caption-${lang}`}>
                 {lang.toUpperCase()}
                 {fromCommons && (
                   <span className="ml-2 text-muted-foreground font-normal text-xs">
                     (from Commons — edit only)
+                  </span>
+                )}
+                {isSent && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                    <Check className="h-3 w-3" />
+                    Sent
                   </span>
                 )}
               </Label>
@@ -281,7 +323,12 @@ export function CaptionEditor({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={!value.trim() || sendingLang !== null || sendingAll}
+                  disabled={
+                    !value.trim() ||
+                    !isDirty ||
+                    sendingLang !== null ||
+                    sendingAll
+                  }
                   onClick={() => sendOne(lang)}
                 >
                   {sendingLang === lang ? (
@@ -301,6 +348,28 @@ export function CaptionEditor({
           );
         })}
       </div>
+      {captions.length > 0 && (
+        <div className="flex justify-end border-t pt-4">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={sendAll}
+            disabled={
+              sendingAll ||
+              captions.filter(
+                (c) => c.text?.trim() && dirtyLangs.has(c.lang),
+              ).length === 0
+            }
+          >
+            {sendingAll ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
+            Send all
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
