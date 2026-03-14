@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -28,27 +29,29 @@ interface LanguageSelectorProps {
   preferredLang: string;
 }
 
+const FALLBACK_LANGUAGES: MediaWikiLanguage[] = [
+  { code: "en", name: "English" },
+  { code: "es", name: "Spanish" },
+  { code: "fr", name: "French" },
+];
+
 export function LanguageSelector({
   selectedLanguages,
   onLanguagesChange,
   preferredLang,
 }: LanguageSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [suggested, setSuggested] = useState<string[]>([]);
-  const [allLanguages, setAllLanguages] = useState<MediaWikiLanguage[]>([]);
   const { favourites, toggle: toggleFavourite, has: isFavourite } = useFavouriteLanguages();
 
-  useEffect(() => {
-    getSuggestedLanguages(preferredLang)
-      .then(setSuggested)
-      .catch(() => setSuggested(["en", "es", "fr"]));
-  }, [preferredLang]);
+  const { data: suggested = ["en", "es", "fr"] } = useQuery({
+    queryKey: ["suggested-languages", preferredLang],
+    queryFn: ({ signal }) => getSuggestedLanguages(preferredLang, { signal }),
+  });
 
-  useEffect(() => {
-    getAllMediaWikiLanguages()
-      .then(setAllLanguages)
-      .catch(() => setAllLanguages([]));
-  }, []);
+  const { data: allLanguages = [] } = useQuery({
+    queryKey: ["mediawiki-languages"],
+    queryFn: ({ signal }) => getAllMediaWikiLanguages({ signal }),
+  });
 
   function addLanguage(code: string) {
     if (selectedLanguages.includes(code)) return;
@@ -73,14 +76,7 @@ export function LanguageSelector({
     ...favourites.filter((f) => !selectedLanguages.includes(f)),
   ];
 
-  const allLanguageOptions =
-    allLanguages.length > 0
-      ? allLanguages
-      : [
-          { code: "en", name: "English" },
-          { code: "es", name: "Spanish" },
-          { code: "fr", name: "French" },
-        ];
+  const allLanguageOptions = allLanguages.length > 0 ? allLanguages : FALLBACK_LANGUAGES;
 
   return (
     <div className="space-y-3">
@@ -122,8 +118,8 @@ export function LanguageSelector({
           <DialogHeader>
             <DialogTitle>Select languages</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Your selection is at the top—star any row to favourite it, click the row to remove from
-              selection. Below: click to add, star to favourite.
+              Your selection is at the top—star any row to favourite it, click the row to remove
+              from selection. Below: click to add, star to favourite.
             </p>
           </DialogHeader>
           <Command className="rounded-lg border">
@@ -147,9 +143,7 @@ export function LanguageSelector({
                           <button
                             type="button"
                             aria-label={
-                              isFavourite(code)
-                                ? "Remove from favourites"
-                                : "Add to favourites"
+                              isFavourite(code) ? "Remove from favourites" : "Add to favourites"
                             }
                             className="rounded p-0.5 hover:bg-muted"
                             onClick={(e) => {
@@ -211,47 +205,45 @@ export function LanguageSelector({
                   .slice(0, 6)
                   .filter((code) => !selectedLanguages.includes(code))
                   .map((code) => {
-                  const isDefault = isDefaultLanguage(code);
-                  return (
-                    <CommandItem
-                      key={code}
-                      value={`${code} ${languageName(code)}`}
-                      onSelect={() => addLanguage(code)}
-                    >
-                      <span className="flex-1">
-                        {languageName(code)} ({code})
-                      </span>
-                      {!isDefault && (
-                        <button
-                          type="button"
-                          aria-label={
-                            isFavourite(code) ? "Remove from favourites" : "Add to favourites"
-                          }
-                          className="rounded p-0.5 hover:bg-muted"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleFavourite(code);
-                          }}
-                        >
-                          <Star
-                            className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
-                            aria-hidden
-                          />
-                        </button>
-                      )}
-                      {selectedLanguages.includes(code) && (
-                        <span className="ml-2 text-muted-foreground text-xs">added</span>
-                      )}
-                    </CommandItem>
-                  );
-                })}
+                    const isDefault = isDefaultLanguage(code);
+                    return (
+                      <CommandItem
+                        key={code}
+                        value={`${code} ${languageName(code)}`}
+                        onSelect={() => addLanguage(code)}
+                      >
+                        <span className="flex-1">
+                          {languageName(code)} ({code})
+                        </span>
+                        {!isDefault && (
+                          <button
+                            type="button"
+                            aria-label={
+                              isFavourite(code) ? "Remove from favourites" : "Add to favourites"
+                            }
+                            className="rounded p-0.5 hover:bg-muted"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleFavourite(code);
+                            }}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`}
+                              aria-hidden
+                            />
+                          </button>
+                        )}
+                        {selectedLanguages.includes(code) && (
+                          <span className="ml-2 text-muted-foreground text-xs">added</span>
+                        )}
+                      </CommandItem>
+                    );
+                  })}
               </CommandGroup>
               <CommandGroup heading="All">
                 {allLanguageOptions
-                  .filter(
-                    (l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code)
-                  )
+                  .filter((l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code))
                   .map(({ code, name }) => {
                     const isDefault = isDefaultLanguage(code);
                     return (

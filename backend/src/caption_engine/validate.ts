@@ -22,6 +22,7 @@ const SPECULATION_MARKERS = [
   "seems",
 ];
 
+/** Result of caption validation: valid flag and list of warning messages. */
 export interface ValidationResult {
   valid: boolean;
   warnings: string[];

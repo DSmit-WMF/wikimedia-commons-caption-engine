@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   translateCaptions,
   validateCaption,
@@ -11,11 +12,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFavouriteLanguages } from "@/lib/favourite-languages";
 import { useLanguageNames } from "./useLanguageNames";
 
+/**
+ * Extracts a user-facing error message from a caught unknown (e.g. Error.message or fallback).
+ */
+function getErrorMessage(e: unknown, fallback: string): string {
+  return e instanceof Error ? e.message : fallback;
+}
+
+/**
+ * Picks the best source caption to translate from: prefers English, otherwise first with text.
+ */
 export function getSourceCaption(captions: CaptionItem[]): CaptionItem | undefined {
   const withText = captions.filter((c) => c.text.trim());
   return withText.find((c) => c.lang === "en") ?? withText[0];
 }
 
+/** Props for the caption editor hook (captions state, file context, callbacks). */
 export interface UseCaptionEditorProps {
   captions: CaptionItem[];
   onCaptionsChange: (captions: CaptionItem[]) => void;
@@ -24,6 +36,12 @@ export interface UseCaptionEditorProps {
   fileIdentifier: string;
   descriptionContext?: string;
 }
+
+/**
+ * Hook for the caption editor: translate (single/all), validate, save to Commons, revert, copy/export.
+ * Uses React Query mutations for translate, validate, and save; aborts in-flight translations when
+ * fileIdentifier changes or the component unmounts.
+ */
 
 export function useCaptionEditor({
   captions,
@@ -52,6 +70,45 @@ export function useCaptionEditor({
   const [dirtyLangs, setDirtyLangs] = useState<Set<string>>(new Set());
   const [baselineValues, setBaselineValues] = useState<Record<string, string>>({});
 
+  /** Abort in-flight translations when file changes or component unmounts. */
+  const translateAbortRef = useRef<AbortController | null>(null);
+
+  const translateMutation = useMutation({
+    mutationFn: ({
+      source,
+      lang,
+      descriptionContext,
+      signal,
+    }: {
+      source: CaptionItem;
+      lang: string;
+      descriptionContext?: string;
+      signal?: AbortSignal;
+    }) => translateCaptions([source], [lang], descriptionContext, { signal }),
+  });
+
+  const validateMutation = useMutation({
+    mutationFn: ({ text, lang }: { text: string; lang?: string }) => validateCaption(text, lang),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: ({
+      fileIdentifier,
+      captions,
+      accessToken,
+    }: {
+      fileIdentifier: string;
+      captions: CaptionItem[];
+      accessToken?: string | null;
+    }) => saveCaptionsToCommons(fileIdentifier, captions, { accessToken }),
+  });
+
+  useEffect(() => {
+    return () => {
+      translateAbortRef.current?.abort();
+    };
+  }, [fileIdentifier]);
+
   const displayLangs = [...new Set([...languages, ...favourites, ...captions.map((c) => c.lang)])];
 
   const emptyNonCommonsLangs = displayLangs.filter(
@@ -75,9 +132,18 @@ export function useCaptionEditor({
         return;
       }
       setError(null);
+      translateAbortRef.current?.abort();
+      translateAbortRef.current = new AbortController();
+      const signal = translateAbortRef.current.signal;
       setGeneratingLang(lang);
       try {
-        const translated = await translateCaptions([source], [lang], descriptionContext);
+        const translated = await translateMutation.mutateAsync({
+          source,
+          lang,
+          descriptionContext,
+          signal,
+        });
+        if (signal.aborted) return;
         const next = translated.filter((t) => t.lang === lang);
         if (next.length === 0) return;
         const existing = captions.filter((c) => c.lang !== lang);
@@ -87,12 +153,13 @@ export function useCaptionEditor({
         const newText = next[0]?.text ?? "";
         setBaselineValues((prev) => ({ ...prev, [lang]: newText }));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Translation failed");
+        if (e instanceof Error && e.name === "AbortError") return;
+        setError(getErrorMessage(e, "Translation failed"));
       } finally {
         setGeneratingLang(null);
       }
     },
-    [captions, onCaptionsChange, descriptionContext]
+    [captions, onCaptionsChange, descriptionContext, translateMutation]
   );
 
   const generateAll = useCallback(async () => {
@@ -103,17 +170,27 @@ export function useCaptionEditor({
       return;
     }
     setError(null);
+    translateAbortRef.current?.abort();
+    translateAbortRef.current = new AbortController();
+    const signal = translateAbortRef.current.signal;
     const total = emptyNonCommonsLangs.length;
     setGeneratingAll(true);
     setGenerateAllProgress({ completed: 0, total });
     try {
       let currentCaptions = [...captions];
       for (let i = 0; i < emptyNonCommonsLangs.length; i++) {
+        if (signal.aborted) break;
         const lang = emptyNonCommonsLangs[i];
         setGeneratingLang(lang);
         setGenerateAllProgress({ completed: i, total });
         try {
-          const translated = await translateCaptions([source], [lang], descriptionContext);
+          const translated = await translateMutation.mutateAsync({
+            source,
+            lang,
+            descriptionContext,
+            signal,
+          });
+          if (signal.aborted) break;
           const item = translated.find((t) => t.lang === lang);
           if (item?.text != null) {
             const existing = currentCaptions.filter((c) => c.lang !== lang);
@@ -128,12 +205,13 @@ export function useCaptionEditor({
         setGenerateAllProgress({ completed: i + 1, total });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Translation failed");
+      if (e instanceof Error && e.name === "AbortError") return;
+      setError(getErrorMessage(e, "Translation failed"));
     } finally {
       setGeneratingAll(false);
       setGenerateAllProgress(null);
     }
-  }, [captions, emptyNonCommonsLangs, onCaptionsChange, descriptionContext]);
+  }, [captions, emptyNonCommonsLangs, onCaptionsChange, descriptionContext, translateMutation]);
 
   const updateCaption = useCallback(
     (lang: string, text: string) => {
@@ -165,7 +243,7 @@ export function useCaptionEditor({
       setError(null);
       setSendingLang(lang);
       try {
-        const result = await validateCaption(cap.text, lang);
+        const result = await validateMutation.mutateAsync({ text: cap.text, lang });
         if (!result.valid && result.warnings.length > 0) {
           setFieldErrors((prev) => ({
             ...prev,
@@ -173,7 +251,9 @@ export function useCaptionEditor({
           }));
           return;
         }
-        await saveCaptionsToCommons(fileIdentifier, [cap], {
+        await saveMutation.mutateAsync({
+          fileIdentifier,
+          captions: [cap],
           accessToken: accessToken ?? undefined,
         });
         setFieldErrors((prev) => {
@@ -189,12 +269,12 @@ export function useCaptionEditor({
         });
         setBaselineValues((prev) => ({ ...prev, [lang]: cap.text }));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Save to Commons failed");
+        setError(getErrorMessage(e, "Save to Commons failed"));
       } finally {
         setSendingLang(null);
       }
     },
-    [captions, fileIdentifier, accessToken]
+    [captions, fileIdentifier, accessToken, validateMutation, saveMutation]
   );
 
   const sendAll = useCallback(async () => {
@@ -206,7 +286,10 @@ export function useCaptionEditor({
     try {
       const errors: Record<string, string> = {};
       for (const cap of toSend) {
-        const result = await validateCaption(cap.text, cap.lang);
+        const result = await validateMutation.mutateAsync({
+          text: cap.text,
+          lang: cap.lang,
+        });
         if (!result.valid && result.warnings.length > 0) {
           errors[cap.lang] = result.warnings.join(" ");
         }
@@ -215,7 +298,9 @@ export function useCaptionEditor({
         setFieldErrors(errors);
         return;
       }
-      await saveCaptionsToCommons(fileIdentifier, toSend, {
+      await saveMutation.mutateAsync({
+        fileIdentifier,
+        captions: toSend,
         accessToken: accessToken ?? undefined,
       });
       setFieldErrors({});
@@ -235,11 +320,11 @@ export function useCaptionEditor({
         return next;
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save to Commons failed");
+      setError(getErrorMessage(e, "Save to Commons failed"));
     } finally {
       setSendingAll(false);
     }
-  }, [captions, fileIdentifier, accessToken]);
+  }, [captions, fileIdentifier, accessToken, validateMutation, saveMutation]);
 
   const revertToBaseline = useCallback(
     (lang: string) => {

@@ -2,6 +2,7 @@ import "./globals.css";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import type { Metadata } from "next";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "Wikimedia Commons Caption Translation Tool",
@@ -15,8 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+      <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

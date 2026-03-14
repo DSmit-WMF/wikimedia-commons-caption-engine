@@ -1,3 +1,17 @@
+# Reuse same env anchors as prod so dev overrides (target, volumes, command) stay minimal.
+x-backend-env: &backend-env
+  PORT: "3002"
+  NODE_ENV: development
+  OPENAPI_SPEC_PATH: /app/openapi.yaml
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+  OPENAI_MAX_COMPLETION_TOKENS: ${OPENAI_MAX_COMPLETION_TOKENS:-}
+  COMMONS_OAUTH_TOKEN: ${COMMONS_OAUTH_TOKEN:-}
+
+x-frontend-env: &frontend-env
+  PORT: "3003"
+  NEXT_PUBLIC_API_URL: http://localhost:3002
+
 services:
   backend:
     build:
@@ -11,12 +25,7 @@ services:
     command: npm run dev
     ports:
       - "3002:3002"
-    environment:
-      - PORT=3002
-      - NODE_ENV=development
-      - OPENAPI_SPEC_PATH=/app/openapi.yaml
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - COMMONS_OAUTH_TOKEN=${COMMONS_OAUTH_TOKEN:-}
+    environment: *backend-env
     env_file:
       - .env
 
@@ -32,9 +41,7 @@ services:
     command: npm run dev
     ports:
       - "3003:3003"
-    environment:
-      - PORT=3003
-      - NEXT_PUBLIC_API_URL=http://localhost:3002
+    environment: *frontend-env
     depends_on:
       - backend
 

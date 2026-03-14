@@ -4,6 +4,7 @@ import { translateCaptions as translateCaptionsCore } from "../caption_engine/tr
 
 let client: OpenAI | null = null;
 
+/** Returns a singleton OpenAI client; throws if API key is not configured. */
 function getClient(): OpenAI {
   if (!config.openaiApiKey) {
     throw new Error("OpenAI API key not configured");
@@ -14,6 +15,7 @@ function getClient(): OpenAI {
   return client;
 }
 
+/** Input for the translate service (source caption, target language codes, optional context). */
 export interface TranslateParams {
   sourceText: string;
   sourceLang: string;
@@ -21,6 +23,10 @@ export interface TranslateParams {
   descriptionContext?: string;
 }
 
+/**
+ * Translates source text into the given target languages via the caption engine (OpenAI).
+ * @returns Array of { lang, text } for each target language
+ */
 export async function translate(
   params: TranslateParams
 ): Promise<{ lang: string; text: string }[]> {

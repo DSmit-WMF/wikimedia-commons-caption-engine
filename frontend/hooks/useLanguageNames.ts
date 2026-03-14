@@ -1,25 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import { getAllMediaWikiLanguages } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
+/**
+ * Hook that provides language code → display name (native and English) from the MediaWiki API.
+ * Used for caption row labels and placeholders (e.g. "中文 (Chinese - zh)").
+ */
 export function useLanguageNames() {
-  const [languageNames, setLanguageNames] = useState<Record<string, string>>({});
-  const [languageNamesEn, setLanguageNamesEn] = useState<Record<string, string>>({});
+  const { data: list = [] } = useQuery({
+    queryKey: ["mediawiki-languages"],
+    queryFn: ({ signal }) => getAllMediaWikiLanguages({ signal }),
+  });
 
-  useEffect(() => {
-    getAllMediaWikiLanguages().then((list) => {
-      const nameMap: Record<string, string> = {};
-      const nameEnMap: Record<string, string> = {};
-      for (const { code, name, nameEn } of list) {
-        nameMap[code] = name;
-        if (nameEn) nameEnMap[code] = nameEn;
-      }
-      setLanguageNames(nameMap);
-      setLanguageNamesEn(nameEnMap);
-    });
-  }, []);
+  const { languageNames, languageNamesEn } = useMemo(() => {
+    const nameMap: Record<string, string> = {};
+    const nameEnMap: Record<string, string> = {};
+    for (const { code, name, nameEn } of list) {
+      nameMap[code] = name;
+      if (nameEn) nameEnMap[code] = nameEn;
+    }
+    return { languageNames: nameMap, languageNamesEn: nameEnMap };
+  }, [list]);
 
   const displayName = useCallback((code: string) => languageNames[code] || code, [languageNames]);
   const englishName = useCallback((code: string) => languageNamesEn[code], [languageNamesEn]);

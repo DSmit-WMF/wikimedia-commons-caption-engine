@@ -3,13 +3,15 @@ import OpenAI from "openai";
 import { config } from "../config.js";
 import { validateCaption } from "./validate.js";
 
+/** Result of caption generation: the suggested caption and any validation warnings. */
 export interface CaptionPreviewResult {
   caption: string;
   warnings: string[];
 }
 
 /**
- * Generate a short factual caption from an image using OpenAI vision.
+ * Generates a short factual caption from an image using OpenAI vision (Chat Completions).
+ * Runs validation on the result and returns caption plus any warnings.
  */
 export async function generateCaption(
   client: OpenAI,
