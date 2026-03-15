@@ -1,0 +1,39 @@
+# Single-tunnel ngrok: one URL for app + API via a reverse proxy.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ngrok.yml up [--build]
+# Requires in .env: NGROK_AUTHTOKEN. Open the tunnel URL from the ngrok log; app and API use the same origin.
+
+x-frontend-env-ngrok: &frontend-env-ngrok
+  PORT: "3003"
+  HOSTNAME: "0.0.0.0"
+  NEXT_PUBLIC_API_SAME_ORIGIN: "true"
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    ports: []
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_SAME_ORIGIN: "true"
+    environment: *frontend-env-ngrok
+
+  ngrok:
+    image: ngrok/ngrok:alpine
+    command: ["start", "--all", "--config", "/etc/ngrok.yml", "--log=stdout"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    env_file:
+      - .env
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml:ro
+    depends_on:
+      - proxy

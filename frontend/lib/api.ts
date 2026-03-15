@@ -1,4 +1,17 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+/**
+ * Base URL for the caption-engine backend.
+ * - NEXT_PUBLIC_API_SAME_ORIGIN=true: use same origin (e.g. behind a reverse proxy with /api → backend).
+ * - NEXT_PUBLIC_API_URL set: use that URL (e.g. separate backend ngrok URL).
+ * - Otherwise in the browser: same host, port 3002 (LAN/ngrok two-tunnel).
+ */
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_SAME_ORIGIN === "true") return "";
+  const env = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (env) return env;
+  if (typeof window !== "undefined")
+    return `${window.location.protocol}//${window.location.hostname}:3002`;
+  return "http://localhost:3002";
+}
 
 /**
  * Shared options for API calls that support cancellation.
@@ -27,7 +40,7 @@ async function postJson<T>(
   options?: FetchOptions,
   errorMessage = "Request failed"
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${getApiBaseUrl()}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -42,7 +55,7 @@ async function postJson<T>(
  * GET a JSON endpoint. Throws on non-OK unless a fallback is returned by the caller.
  */
 async function getJson<T>(path: string, options?: FetchOptions): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, { signal: options?.signal });
+  const res = await fetch(`${getApiBaseUrl()}${path}`, { signal: options?.signal });
   if (!res.ok) throw new Error(res.statusText);
   return res.json();
 }
@@ -162,7 +175,7 @@ export async function saveCaptionsToCommons(
     headers.Authorization = `Bearer ${options.accessToken}`;
     body.oauth_token = options.accessToken;
   }
-  const res = await fetch(`${API_URL}/api/commons/save-captions`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/commons/save-captions`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -179,7 +192,7 @@ export async function getRandomCommonsFile(): Promise<{
   url: string;
   title: string;
 } | null> {
-  const res = await fetch(`${API_URL}/api/commons/random-file`);
+  const res = await fetch(`${getApiBaseUrl()}/api/commons/random-file`);
   if (!res.ok) return null;
   return res.json();
 }
@@ -204,7 +217,7 @@ export async function getCommonsFileInfo(
 ): Promise<CommonsFileInfo | null> {
   const isUrl = urlOrTitle.startsWith("http");
   const params = new URLSearchParams(isUrl ? { url: urlOrTitle } : { title: urlOrTitle });
-  const res = await fetch(`${API_URL}/api/commons/file-info?${params}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/commons/file-info?${params}`, {
     signal: options?.signal,
   });
   if (!res.ok) return null;

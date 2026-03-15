@@ -1,0 +1,10 @@
+# Reverse proxy for single-tunnel ngrok: one URL for app + API.
+# /api/* → backend:3002 (full path kept), everything else → frontend:3003
+:3000 {
+    handle /api/* {
+        reverse_proxy backend:3002
+    }
+    handle {
+        reverse_proxy frontend:3003
+    }
+}

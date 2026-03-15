@@ -1,0 +1,7 @@
+# ngrok config for caption-engine (used with docker-compose.ngrok.yml).
+# Single tunnel: proxy serves frontend + backend on one URL. NGROK_AUTHTOKEN from .env.
+version: "2"
+tunnels:
+  app:
+    proto: http
+    addr: proxy:3000

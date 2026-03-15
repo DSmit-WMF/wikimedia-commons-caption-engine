@@ -10,10 +10,7 @@ import {
   type BatchFileInfoItem,
   type CommonsFileInfo,
 } from "@/lib/api";
-import {
-  DEFAULT_LANGUAGE_CODES,
-  getFavouriteLanguages,
-} from "@/lib/favourite-languages";
+import { DEFAULT_LANGUAGE_CODES, getFavouriteLanguages } from "@/lib/favourite-languages";
 
 const DEFAULT_LANGUAGES = [...DEFAULT_LANGUAGE_CODES];
 
@@ -79,11 +76,7 @@ function applyFileInfo(
   // Selection = defaults + favourites (for next-time auto-add) + languages from file.
   const fileLangCodes = initial.map((c) => c.lang);
   const initialLanguages = [
-    ...new Set([
-      ...DEFAULT_LANGUAGE_CODES,
-      ...getFavouriteLanguages(),
-      ...fileLangCodes,
-    ]),
+    ...new Set([...DEFAULT_LANGUAGE_CODES, ...getFavouriteLanguages(), ...fileLangCodes]),
   ];
   setters.setLanguages(initialLanguages);
   setters.setFileIdentifier(info.title ?? url);

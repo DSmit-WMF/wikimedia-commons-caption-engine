@@ -97,6 +97,16 @@ From `frontend/` or `backend/`: `npm run format`, `npm run format:check` (and in
 
 **OpenAPI spec (dev only):** When not in production, the backend serves the spec and Swagger UI at [http://localhost:3002/api-docs](http://localhost:3002/api-docs) and [http://localhost:3002/openapi.yaml](http://localhost:3002/openapi.yaml). These routes are not mounted in production.
 
+**Exposing with ngrok (Docker, one tunnel):** From the repo root, add to `.env` your [ngrok auth token](https://dashboard.ngrok.com/get-started/your-authtoken) as `NGROK_AUTHTOKEN` (no underscore), then run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.ngrok.yml up --build
+```
+
+This starts the app, a Caddy reverse proxy, and ngrok with a **single tunnel**. The proxy serves the frontend and forwards `/api` to the backend on one URL. In the ngrok log you’ll see one URL (e.g. `https://xxx.ngrok-free.dev`); open it in the browser or on your phone. Load, Random image, and all API calls use the same origin.
+
+**Two tunnels (optional):** If you have two ngrok tunnels (e.g. two reserved domains), you can use the previous setup: two tunnels in `ngrok.yml`, set `NGROK_BACKEND_URL` to the backend tunnel URL, and remove `NEXT_PUBLIC_API_SAME_ORIGIN` so the frontend uses that backend URL.
+
 ### 6. Use it
 
 1. Paste a **Commons file URL** (e.g. `https://commons.wikimedia.org/wiki/File:Example.jpg`) and click **Load**, use **Random image** to load a random file with captions, or paste **multiple URLs** (one per line or comma-separated) in the batch box, or **upload a CSV/txt file** (first column = URL or File: title; optional header row `url`/`file`/`title`), then click **Load batch** — then click **Open** on a result to work on that file.

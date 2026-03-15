@@ -70,52 +70,60 @@ export function CaptionRow({
           </span>
         )}
       </Label>
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Input
           id={`caption-${lang}`}
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
           placeholder={placeholderText}
           maxLength={CAPTION_MAX_LENGTH}
-          className={`flex-1 min-w-[200px] ${
+          className={`w-full sm:min-w-[200px] sm:flex-1 ${
             fieldError ? "border-destructive focus-visible:ring-destructive" : ""
           }`}
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={generatingLang !== null || generatingAll}
-          onClick={onGenerate}
-        >
-          {generatingLang === lang ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Generate
-        </Button>
-        {canRevert && (
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
-            disabled={sendingLang !== null || sendingAll}
-            onClick={onRevert}
-            title="Revert to last saved or loaded value"
+            disabled={!canSend}
+            onClick={onSend}
           >
-            <Undo2 className="h-4 w-4" />
-            Revert
+            {sendingLang === lang ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Send
           </Button>
-        )}
-        <Button type="button" variant="outline" size="sm" disabled={!canSend} onClick={onSend}>
-          {sendingLang === lang ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={generatingLang !== null || generatingAll}
+            onClick={onGenerate}
+          >
+            {generatingLang === lang ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            Generate
+          </Button>
+          {canRevert && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={sendingLang !== null || sendingAll}
+              onClick={onRevert}
+              title="Revert to last saved or loaded value"
+            >
+              <Undo2 className="h-4 w-4" />
+              Revert
+            </Button>
           )}
-          Send
-        </Button>
+        </div>
       </div>
       <p
         className={`text-xs ${

@@ -103,9 +103,7 @@ export function LanguageSelector({
                 >
                   <Star
                     className={`h-3.5 w-3.5 shrink-0 ${
-                      isFavourite(code)
-                        ? "fill-amber-400 text-amber-500"
-                        : "text-muted-foreground"
+                      isFavourite(code) ? "fill-amber-400 text-amber-500" : "text-muted-foreground"
                     }`}
                     aria-hidden
                   />
@@ -182,9 +180,7 @@ export function LanguageSelector({
               </CommandGroup>
               <CommandGroup heading="All">
                 {allLanguageOptions
-                  .filter(
-                    (l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code)
-                  )
+                  .filter((l) => !suggested.includes(l.code) && !selectedLanguages.includes(l.code))
                   .map(({ code, name }) => (
                     <CommandItem
                       key={code}
